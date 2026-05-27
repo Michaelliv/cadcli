@@ -3,7 +3,7 @@
 Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.
 
 ```bash
-npm install -g cadcli
+npm install -g @miclivs/cadcli
 ```
 
 Common inspection/search commands use a pure TypeScript parser by default. Native LibreDWG tools are only needed for high-fidelity `view` and jq-backed `edit`.
@@ -95,7 +95,7 @@ cadcli edit drawing.dwg --jq '.OBJECTS[]' --overwrite
 ## SDK
 
 ```ts
-import { Dwg } from "cadcli";
+import { Dwg } from "@miclivs/cadcli";
 
 const drawing = Dwg.open("floorplan.dwg");
 
