@@ -1,59 +1,113 @@
 # cadcli
 
-CAD inspection, viewing, and editing tools backed by LibreDWG.
+Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files — powered by native LibreDWG.
 
 ```bash
 npm install -g cadcli
 ```
 
-## Quick start
+`cadcli` expects LibreDWG tools on your `PATH`. At minimum, install `dwgread` for inspection/search/viewing and `dwgfilter` for editing.
+
+## Why cadcli
+
+CAD files are hard to inspect from scripts. `cadcli` gives agents and developers a predictable interface over DWG/DXF drawings: structured JSON for automation, concise human output in the terminal, SVG previews for visual checks, and safe copy-first editing through LibreDWG.
 
 ```bash
-cadcli info drawing.dwg
-cadcli layers drawing.dwg --json
-cadcli entities drawing.dwg --type LINE --limit 20
-cadcli search drawing.dwg "conference" --layer A-TEXT --json
-cadcli view drawing.dwg -o drawing.svg
-cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
+cadcli info floorplan.dwg --json
+cadcli search floorplan.dwg "conference" --layer A-TEXT --json
+cadcli view floorplan.dwg -o preview.svg
+cadcli edit floorplan.dwg --jq '.OBJECTS[]' -o edited.dwg
 ```
 
-Workflow: **info → search/entities → view/edit**.
+## Workflow
+
+```txt
+info → layers/blocks/entities → search → view → edit
+```
+
+Start with `info` to understand the drawing, narrow down with `layers`, `blocks`, `entities`, and `search`, render an SVG with `view`, then write edits to a new file with `edit -o`.
 
 ## Commands
 
-- `cadcli info <file>` — metadata, version, counts, layers, blocks, bounds.
-- `cadcli layers <file>` — list layers and entity counts.
-- `cadcli blocks <file>` — list blocks.
-- `cadcli entities <file>` — list entities; supports `--type`, `--layer`, `--limit`, `--total`.
-- `cadcli search <file> [query]` — MiniSearch-backed entity search over IDs, types, layers, text, block names, and raw fields.
-- `cadcli view <file>` — render SVG with native LibreDWG `dwgread`.
-- `cadcli edit <file> --jq <expression>` — edit via native LibreDWG `dwgfilter`; use `-o` for safe copy output or `--overwrite` for in-place edits.
-- `cadcli json <file>` — print normalized JSON or write with `-o`.
-- `cadcli svg <file>` — print/write best-effort SVG from native LibreDWG JSON for common entities.
-- `cadcli thumbnail <file>` — extract an embedded thumbnail when available.
+```bash
+cadcli info <file>                       # metadata, version, counts, bounds
+cadcli layers <file> [--total]           # layers and entity counts
+cadcli blocks <file> [--total]           # block names and entity counts
+cadcli entities <file>                   # entities, optionally filtered
+  --type LINE --layer A-WALL --limit 20 --total
 
-All commands support `--json` for structured output and `-q, --quiet` for scripts. Search indexes are cached automatically in the platform-standard cache directory (`~/Library/Caches/cadcli` on macOS, `$XDG_CACHE_HOME/cadcli` or `~/.cache/cadcli` on Linux, and `%LOCALAPPDATA%\\cadcli\\Cache` on Windows). Set `CADCLI_CACHE_DIR` to override it.
+cadcli search <file> [query]             # search IDs, types, layers, text, raw fields
+  --query "door" --type TEXT --layer A-TEXT --limit 10 --score --no-snippets
+
+cadcli view <file> [-o preview.svg]      # native LibreDWG SVG via dwgread
+cadcli edit <file> --jq <expr> -o out.dwg
+cadcli json <file> [-o drawing.json]     # normalized JSON
+cadcli svg <file> [-o sketch.svg]        # best-effort SVG from normalized JSON
+cadcli thumbnail <file> [-o thumb.png]   # embedded thumbnail when available
+```
+
+All commands support `--json` for structured output and `-q, --quiet` where useful. Primary data goes to stdout; diagnostics and errors go to stderr.
+
+## Viewing vs SVG export
+
+`cadcli view` is the high-fidelity path: it calls native LibreDWG `dwgread -O SVG`.
+
+`cadcli svg` renders a lightweight SVG from cadcli’s normalized JSON model. It is useful for quick agent previews and debugging, but it is not a replacement for LibreDWG’s native SVG renderer.
+
+## Editing
+
+Editing is intentionally copy-first:
+
+```bash
+cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
+```
+
+In-place edits are refused unless you explicitly pass `--overwrite`:
+
+```bash
+cadcli edit drawing.dwg --jq '.OBJECTS[]' --overwrite
+```
 
 ## SDK
 
 ```ts
 import { Dwg } from "cadcli";
 
-const drawing = Dwg.open("drawing.dwg");
+const drawing = Dwg.open("floorplan.dwg");
+
 console.log(await drawing.info());
 console.log(await drawing.layers());
-console.log((await drawing.svg()).svg);
+console.log(await drawing.search({ query: "conference", layer: "A-TEXT" }));
+
+const preview = drawing.view();
+console.log(preview.svg);
 ```
 
-The SDK exposes the high-level `Dwg` class plus stable CAD/result types. Native LibreDWG details stay behind the SDK methods.
+The public SDK is intentionally small: `Dwg` plus stable CAD/result types. Native LibreDWG details stay behind the SDK methods.
 
-## LibreDWG backend
+## Cache
 
-`cadcli` uses native LibreDWG only. `dwgread` provides JSON for inspection/search/export and SVG for viewing. `dwgfilter` provides jq-style modifications, and `dwgadd`/`dwgwrite`/`dwgrewrite` are the future create/rewrite path.
+Search indexes are cached automatically in the platform-standard cache directory:
 
-## For agents
+```txt
+macOS    ~/Library/Caches/cadcli
+Linux    $XDG_CACHE_HOME/cadcli or ~/.cache/cadcli
+Windows  %LOCALAPPDATA%\cadcli\Cache
+```
 
-Agents should prefer `--json` and treat stdout as primary data; diagnostics and errors are written to stderr.
+Set `CADCLI_CACHE_DIR` to override this location.
+
+## LibreDWG
+
+`cadcli` uses native LibreDWG only:
+
+```txt
+dwgread    JSON for inspection/search/export, SVG for viewing
+dwgfilter  jq-style DWG/DXF editing
+dwgadd     future create/add workflow
+dwgwrite   future write workflow
+dwgrewrite future rewrite workflow
+```
 
 ## License
 
