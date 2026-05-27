@@ -61,21 +61,21 @@ function loadSearchIndex(indexJson: string): MiniSearch<SearchDoc> {
   });
 }
 
-function stringifyValue(value: unknown): string {
+export function stringifySearchValue(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (["string", "number", "boolean", "bigint"].includes(typeof value)) {
     return String(value);
   }
-  if (Array.isArray(value)) return value.map(stringifyValue).join(" ");
+  if (Array.isArray(value)) return value.map(stringifySearchValue).join(" ");
   if (typeof value === "object") {
     return Object.entries(value as Record<string, unknown>)
-      .map(([key, val]) => `${key} ${stringifyValue(val)}`)
+      .map(([key, val]) => `${key} ${stringifySearchValue(val)}`)
       .join(" ");
   }
   return "";
 }
 
-function textFields(entity: DwgEntity): string[] {
+export function entitySearchFields(entity: DwgEntity): string[] {
   const values = [
     entity.id,
     entity.type,
@@ -85,7 +85,7 @@ function textFields(entity: DwgEntity): string[] {
     String(entity.data.name ?? ""),
     String(entity.data.blockName ?? ""),
     String(entity.data.block_name ?? ""),
-    stringifyValue(entity.data),
+    stringifySearchValue(entity.data),
   ];
   return values.filter((value) => value.trim().length > 0);
 }
@@ -96,7 +96,7 @@ function buildDocs(doc: DwgDocument): SearchDoc[] {
     entityId: entity.id,
     type: entity.type,
     layer: entity.layer,
-    text: textFields(entity).join(" "),
+    text: entitySearchFields(entity).join(" "),
     entity,
   }));
 }
@@ -117,11 +117,14 @@ function matchesFilter(doc: SearchDoc, opts: DwgSearchOptions): boolean {
   return true;
 }
 
-function matchesFor(doc: SearchDoc, query: string | undefined): string[] {
+export function searchMatchesFor(
+  entity: DwgEntity,
+  query: string | undefined,
+): string[] {
   if (!query) return [];
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return [];
-  return textFields(doc.entity)
+  return entitySearchFields(entity)
     .filter((chunk) => {
       const lower = chunk.toLowerCase();
       return terms.some((term) => lower.includes(term));
@@ -158,7 +161,7 @@ function resultScore(result: { score?: number }): number {
   return Math.round((Number(result.score) || 1) * 10) / 10;
 }
 
-export async function searchDrawing(
+async function searchWithMiniSearch(
   file: string,
   opts: DwgSearchOptions = {},
   loadOpts: LoadOptions = {},
@@ -184,9 +187,30 @@ export async function searchDrawing(
       type: doc.type,
       layer: doc.layer,
       score: resultScore(result),
-      matches: opts.snippets === false ? [] : matchesFor(doc, query),
+      matches:
+        opts.snippets === false ? [] : searchMatchesFor(doc.entity, query),
       entity: doc.entity,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, opts.limit ?? DEFAULT_LIMIT);
+}
+
+async function searchWithDiskIndex(
+  file: string,
+  opts: DwgSearchOptions,
+  loadOpts: LoadOptions,
+): Promise<DwgSearchResult[] | null> {
+  const { searchWithSqlite } = await import("./sqlite-search.js");
+  return searchWithSqlite(file, opts, loadOpts);
+}
+
+export async function searchDrawing(
+  file: string,
+  opts: DwgSearchOptions = {},
+  loadOpts: LoadOptions = {},
+): Promise<DwgSearchResult[]> {
+  return (
+    (await searchWithDiskIndex(file, opts, loadOpts)) ??
+    searchWithMiniSearch(file, opts, loadOpts)
+  );
 }

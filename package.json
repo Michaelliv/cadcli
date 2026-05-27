@@ -70,6 +70,9 @@
     "minisearch": "^7.2.0",
     "nanoid": "^5.1.6"
   },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.10.0"
+  },
   "patchedDependencies": {
     "@node-projects/acad-ts@2.3.0": "patches/@node-projects%2Facad-ts@2.3.0.patch"
   }
