@@ -29,6 +29,16 @@ function defaultWasmPath(): string | undefined {
   }
 }
 
+function redirectParserLogs<T>(fn: () => T): T {
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => console.error(...args);
+  try {
+    return fn();
+  } finally {
+    console.log = originalLog;
+  }
+}
+
 export class LibredwgParser implements DwgParser {
   private lib?: LibreDwgInstance;
   private fileType?: Record<string, unknown>;
@@ -49,10 +59,12 @@ export class LibredwgParser implements DwgParser {
       );
     const type = this.fileType[format];
     try {
-      const dwg = this.lib.dwg_read_data(bytes, type);
-      const db = this.lib.convert(dwg);
-      this.lib.dwg_free?.(dwg);
-      return db;
+      return redirectParserLogs(() => {
+        const dwg = this.lib?.dwg_read_data(bytes, type);
+        const db = this.lib?.convert(dwg);
+        this.lib?.dwg_free?.(dwg);
+        return db;
+      });
     } catch (error) {
       throw new DwgCliError(
         `Could not parse drawing: ${(error as Error).message}`,
