@@ -45,7 +45,7 @@ console.log(await drawing.layers());
 console.log((await drawing.svg()).svg);
 ```
 
-The SDK exports `Dwg`, LibreDWG helpers, core helpers, and consumer-facing types from `cadcli`.
+The SDK exposes the high-level `Dwg` class plus stable CAD/result types. Native LibreDWG details stay behind the SDK methods.
 
 ## LibreDWG backend
 
