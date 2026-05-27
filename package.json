@@ -16,7 +16,8 @@
   },
   "files": [
     "dist",
-    "patches"
+    "patches",
+    "skills"
   ],
   "scripts": {
     "build": "tsc",
@@ -48,8 +49,14 @@
     "sdk",
     "libredwg",
     "svg",
-    "conversion"
+    "conversion",
+    "pi-package"
   ],
+  "pi": {
+    "skills": [
+      "skills"
+    ]
+  },
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
