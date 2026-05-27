@@ -8,6 +8,7 @@ import { entities } from "./entities.js";
 import { info } from "./info.js";
 import { json } from "./json.js";
 import { layers } from "./layers.js";
+import { overview } from "./overview.js";
 import { search } from "./search.js";
 import { svg } from "./svg.js";
 import { thumbnail } from "./thumbnail.js";
@@ -33,6 +34,7 @@ const parser: DrawingReader = {
           layer: "0",
           start: { x: 0, y: 0 },
           end: { x: 1, y: 1 },
+          text: "Conference room",
         },
       ],
     };
@@ -103,6 +105,9 @@ describe("commands", () => {
       total: true,
     });
     expect(JSON.parse(stdout).total).toBe(1);
+    resetOutput();
+    await overview(file, { json: true, reader: parser, keywords: "3" });
+    expect(JSON.parse(stdout).searchHints).toContain("conference");
   });
 
   test("search supports json, scoring, snippets, and total", async () => {
@@ -150,6 +155,10 @@ describe("commands", () => {
     resetOutput();
     await search(file, { reader: parser, query: "line", score: true });
     expect(stdout).toContain("score");
+    resetOutput();
+    await overview(file, { reader: parser });
+    expect(stdout).toContain("SEARCH HINTS");
+    expect(stdout).toContain("Conference room");
   });
 
   test("view and edit use LibreDWG native tools", async () => {
@@ -308,6 +317,11 @@ describe("commands", () => {
     resetOutput();
     await expect(
       entities(file, { reader: parser, limit: "bad" }),
+    ).rejects.toThrow("exit:2");
+    expect(stderr).toContain("Invalid limit");
+    resetOutput();
+    await expect(
+      overview(file, { reader: parser, keywords: "bad" }),
     ).rejects.toThrow("exit:2");
     expect(stderr).toContain("Invalid limit");
   });

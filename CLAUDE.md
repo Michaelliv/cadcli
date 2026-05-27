@@ -17,7 +17,7 @@ bunx biome format --write src/
 
 ## Architecture
 
-`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, LibreDWG adapter boundaries, native LibreDWG tool wrappers, normalization, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
+`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, LibreDWG adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
 
 ## Key patterns
 
@@ -31,4 +31,4 @@ Use native LibreDWG only. `dwgread` is required for inspection/search/JSON/SVG/v
 
 ## Adding a new command
 
-Create `src/commands/name.ts`, implement a function that accepts parsed options, calls `Dwg` or `src/core/*`, and formats through `output()`. Import it in `src/main.ts`, add a Commander subcommand with useful help, and add tests for human/JSON/error behavior.
+Create `src/commands/name.ts`, implement a function that accepts parsed options, calls `Dwg` or `src/core/*`, and formats through `output()`. Import it in `src/main.ts`, add a Commander subcommand with useful help, and add tests for human/JSON/error behavior. For agent-discovery features, follow the `overview → search/entities → view/edit` progressive-disclosure pattern.

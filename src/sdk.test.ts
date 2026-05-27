@@ -26,6 +26,7 @@ describe("SDK", () => {
     expect((await dwg.info()).format).toBe("DXF");
     expect(await dwg.layers()).toEqual([{ name: "0", entityCount: 1 }]);
     expect((await dwg.search({ query: "line" }))[0].type).toBe("LINE");
+    expect((await dwg.overview()).entityTypes[0].type).toBe("LINE");
     expect((await dwg.json()).entities[0].type).toBe("LINE");
     expect(await dwg.blocks()).toEqual([]);
     expect((await dwg.entities())[0].type).toBe("LINE");

@@ -16,6 +16,11 @@ import {
   renderSvgWithLibreDwg,
 } from "./core/libredwg.js";
 import {
+  type DrawingOverview,
+  type DrawingOverviewOptions,
+  getOverview,
+} from "./core/overview.js";
+import {
   type DwgSearchOptions,
   type DwgSearchResult,
   searchDrawing,
@@ -59,6 +64,10 @@ export class Dwg {
 
   search(opts?: DwgSearchOptions): Promise<DwgSearchResult[]> {
     return searchDrawing(this.file, opts, this.opts);
+  }
+
+  overview(opts?: DrawingOverviewOptions): Promise<DrawingOverview> {
+    return getOverview(this.file, opts, this.opts);
   }
 
   json(): Promise<DwgDocument> {

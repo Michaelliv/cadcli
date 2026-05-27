@@ -14,6 +14,7 @@ CAD files are hard to inspect from scripts. `cadcli` gives agents and developers
 
 ```bash
 cadcli info floorplan.dwg --json
+cadcli overview floorplan.dwg
 cadcli search floorplan.dwg "conference" --layer A-TEXT --json
 cadcli view floorplan.dwg -o preview.svg
 cadcli edit floorplan.dwg --jq '.OBJECTS[]' -o edited.dwg
@@ -22,15 +23,17 @@ cadcli edit floorplan.dwg --jq '.OBJECTS[]' -o edited.dwg
 ## Workflow
 
 ```txt
-info → layers/blocks/entities → search → view → edit
+info → overview → layers/blocks/entities → search → view → edit
 ```
 
-Start with `info` to understand the drawing, narrow down with `layers`, `blocks`, `entities`, and `search`, render an SVG with `view`, then write edits to a new file with `edit -o`.
+Start with `info` to understand the drawing, use `overview` to see the searchable vocabulary, narrow down with `layers`, `blocks`, `entities`, and `search`, render an SVG with `view`, then write edits to a new file with `edit -o`.
 
 ## Commands
 
 ```bash
 cadcli info <file>                       # metadata, version, counts, bounds
+cadcli overview <file>                   # search vocabulary by layer/type/block/text
+  --keywords 12 --samples 8
 cadcli layers <file> [--total]           # layers and entity counts
 cadcli blocks <file> [--total]           # block names and entity counts
 cadcli entities <file>                   # entities, optionally filtered
@@ -47,6 +50,27 @@ cadcli thumbnail <file> [-o thumb.png]   # embedded thumbnail when available
 ```
 
 All commands support `--json` for structured output and `-q, --quiet` where useful. Primary data goes to stdout; diagnostics and errors go to stderr.
+
+## Overview
+
+`cadcli overview` is the map before the search. It shows the drawing's useful vocabulary broken down by layer, entity type, block, text keyword, and search hint so agents do not have to guess what to query.
+
+```txt
+WORKFLOW: overview (you are here) → search/entities → view/edit
+
+SUMMARY
+  DWG · 1906 entities · 33 layers · 42 blocks
+
+LAYERS
+A-TEXT
+  entities: 88
+  types: TEXT, MTEXT
+  keywords: conference room, office, lobby
+
+SEARCH HINTS
+  conference room, office, A-TEXT, DOOR_SINGLE, TEXT
+```
+
 
 ## Viewing vs SVG export
 

@@ -9,6 +9,7 @@ import { entities } from "./commands/entities.js";
 import { info } from "./commands/info.js";
 import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
+import { overview } from "./commands/overview.js";
 import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
@@ -22,32 +23,34 @@ const program = new Command();
 function showHelp() {
   console.log(`Usage: cadcli [options] [command]
 
-CAD inspection, viewing, and editing tools backed by LibreDWG.
+Agent-friendly CAD inspection, search, viewing, and editing.
 
 Examples:
   $ cadcli info drawing.dwg              Summarize a drawing
+  $ cadcli overview drawing.dwg          Show search vocabulary
   $ cadcli layers drawing.dwg --json     List layers for scripts/agents
   $ cadcli entities drawing.dwg --type LINE --limit 20
   $ cadcli search drawing.dwg "conference" --layer A-TEXT
   $ cadcli view drawing.dwg -o drawing.svg
   $ cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
 
-Workflow: info → search/entities → view/edit
+Workflow: info → overview → search/entities → view/edit
 
 Inspecting:
   info <file>          Drawing metadata and counts
+  overview <file>      Search vocabulary by layer/type/block/text
   layers <file>        List layers
   blocks <file>        List blocks
   entities <file>      List/filter entities
   search <file>        Search entities by text, type, layer, and raw fields
 
 Viewing and editing:
-  view <file>          Render SVG with native LibreDWG dwgread
-  edit <file>          Edit with native LibreDWG dwgfilter
+  view <file>          Render a high-fidelity SVG preview
+  edit <file>          Edit DWG/DXF with jq-style expressions
 
 Conversion:
   json <file>          Export normalized JSON
-  svg <file>           Render best-effort SVG from LibreDWG JSON
+  svg <file>           Render best-effort SVG from normalized JSON
   thumbnail <file>     Extract embedded thumbnail when available
 
 Options:
@@ -62,7 +65,7 @@ Docs: https://github.com/Michaelliv/cadcli`);
 
 program
   .name("cadcli")
-  .description("CAD inspection, viewing, and editing tools backed by LibreDWG.")
+  .description("Agent-friendly CAD inspection, search, viewing, and editing.")
   .version(`cadcli ${version}`, "-v, --version")
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Suppress output")
@@ -82,6 +85,14 @@ program
   .command("info <file>")
   .description("Show drawing metadata and summary")
   .action(async (file, _opts, cmd) => info(file, cmd.optsWithGlobals()));
+program
+  .command("overview <file>")
+  .description("Show search vocabulary by layer/type/block/text")
+  .option("--keywords <n>", "Max keywords/hints returned")
+  .option("--samples <n>", "Max text samples returned")
+  .action(async (file, opts, cmd) =>
+    overview(file, { ...cmd.optsWithGlobals(), ...opts }),
+  );
 program
   .command("layers <file>")
   .description("List layers")
@@ -124,14 +135,14 @@ program
 
 program
   .command("view <file>")
-  .description("Render SVG with native LibreDWG dwgread")
+  .description("Render a high-fidelity SVG preview")
   .option("-o, --output <path>", "Output SVG file")
   .action(async (file, opts, cmd) =>
     view(file, { ...cmd.optsWithGlobals(), ...opts }),
   );
 program
   .command("edit <file>")
-  .description("Edit DWG/DXF with native LibreDWG dwgfilter")
+  .description("Edit DWG/DXF with jq-style expressions")
   .requiredOption("--jq <expression>", "dwgfilter jq expression")
   .option(
     "-o, --output <path>",
@@ -150,7 +161,7 @@ program
   );
 program
   .command("svg <file>")
-  .description("Render best-effort SVG from LibreDWG JSON")
+  .description("Render best-effort SVG from normalized JSON")
   .option("-o, --output <path>", "Output file")
   .action(async (file, opts, cmd) =>
     svg(file, { ...cmd.optsWithGlobals(), ...opts }),
