@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { DrawingReader } from "../types.js";
 import {
@@ -140,6 +146,27 @@ describe("drawing core", () => {
     );
     expect(noQuery).toHaveLength(2);
     expect(noQuery[0].matches).toEqual([]);
+
+    const blankQuery = await searchDrawing(
+      file,
+      { query: "   ", limit: 1 },
+      { reader: parser },
+    );
+    expect(blankQuery[0].matches).toEqual([]);
+
+    const wrongType = await searchDrawing(
+      file,
+      { query: "circle", type: "LINE" },
+      { reader: parser },
+    );
+    expect(wrongType).toEqual([]);
+
+    const wrongLayer = await searchDrawing(
+      file,
+      { query: "circle", layer: "0" },
+      { reader: parser },
+    );
+    expect(wrongLayer).toEqual([]);
   });
 
   test("search caches indexes in the standard cache directory", async () => {
@@ -163,6 +190,27 @@ describe("drawing core", () => {
     );
     expect(parses).toBe(1);
     expect(existsSync(join(cacheDir, "search"))).toBe(true);
+  });
+
+  test("search ignores stale index hits that are missing from cached docs", async () => {
+    const cacheDir = join(dir, "stale-cache");
+    await searchDrawing(
+      file,
+      { query: "circle", cacheDir },
+      { reader: parser },
+    );
+    const searchDir = join(cacheDir, "search");
+    const [cacheFile] = readdirSync(searchDir);
+    const cachePath = join(searchDir, cacheFile);
+    const cached = JSON.parse(readFileSync(cachePath, "utf-8"));
+    writeFileSync(cachePath, JSON.stringify({ ...cached, docs: [] }));
+
+    const results = await searchDrawing(
+      file,
+      { query: "circle", cacheDir },
+      { reader: parser },
+    );
+    expect(results).toEqual([]);
   });
 
   test("renders common entities to SVG and reports unsupported", async () => {

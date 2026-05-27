@@ -8,6 +8,11 @@ import {
   saveSearchCache,
 } from "./search-cache.js";
 
+const SEARCH_FIELDS = ["entityId", "type", "layer", "text"] as const;
+const STORE_FIELDS = ["entityId", "type", "layer", "text"] as const;
+const DEFAULT_LIMIT = 30;
+const MAX_MATCHES = 5;
+
 export interface DwgSearchOptions extends EntityFilter {
   query?: string;
   limit?: number;
@@ -23,6 +28,37 @@ export interface DwgSearchResult {
   score: number;
   matches: string[];
   entity: DwgEntity;
+}
+
+type SearchDoc = CachedSearchDoc & { entity: DwgEntity };
+
+interface SearchHit {
+  id: number;
+  score?: number;
+}
+
+function createSearchIndex(): MiniSearch<SearchDoc> {
+  return new MiniSearch<SearchDoc>({
+    fields: [...SEARCH_FIELDS],
+    storeFields: [...STORE_FIELDS],
+    searchOptions: {
+      boost: { entityId: 3, type: 2, layer: 2, text: 1 },
+      fuzzy: 0.2,
+      prefix: true,
+    },
+  });
+}
+
+function loadSearchIndex(indexJson: string): MiniSearch<SearchDoc> {
+  return MiniSearch.loadJSON<SearchDoc>(indexJson, {
+    fields: [...SEARCH_FIELDS],
+    storeFields: [...STORE_FIELDS],
+    searchOptions: {
+      boost: { entityId: 3, type: 2, layer: 2, text: 1 },
+      fuzzy: 0.2,
+      prefix: true,
+    },
+  });
 }
 
 function stringifyValue(value: unknown): string {
@@ -51,10 +87,10 @@ function textFields(entity: DwgEntity): string[] {
     String(entity.data.block_name ?? ""),
     stringifyValue(entity.data),
   ];
-  return values.filter((v) => v.trim().length > 0);
+  return values.filter((value) => value.trim().length > 0);
 }
 
-function buildDocs(doc: DwgDocument): CachedSearchDoc[] {
+function buildDocs(doc: DwgDocument): SearchDoc[] {
   return doc.entities.map((entity, id) => ({
     id,
     entityId: entity.id,
@@ -65,39 +101,61 @@ function buildDocs(doc: DwgDocument): CachedSearchDoc[] {
   }));
 }
 
-function buildIndex(docs: CachedSearchDoc[]): MiniSearch<CachedSearchDoc> {
-  const index = new MiniSearch<CachedSearchDoc>({
-    fields: ["entityId", "type", "layer", "text"],
-    storeFields: ["entityId", "type", "layer", "text"],
-    searchOptions: {
-      boost: { entityId: 3, type: 2, layer: 2, text: 1 },
-      fuzzy: 0.2,
-      prefix: true,
-    },
-  });
+function buildIndex(docs: SearchDoc[]): MiniSearch<SearchDoc> {
+  const index = createSearchIndex();
   index.addAll(docs);
   return index;
 }
 
-function filterDoc(doc: CachedSearchDoc, opts: DwgSearchOptions): boolean {
-  if (opts.type && doc.type.toLowerCase() !== opts.type.toLowerCase())
+function matchesFilter(doc: SearchDoc, opts: DwgSearchOptions): boolean {
+  if (opts.type && doc.type.toLowerCase() !== opts.type.toLowerCase()) {
     return false;
-  if (opts.layer && doc.layer?.toLowerCase() !== opts.layer.toLowerCase())
+  }
+  if (opts.layer && doc.layer?.toLowerCase() !== opts.layer.toLowerCase()) {
     return false;
+  }
   return true;
 }
 
-function matchesFor(doc: CachedSearchDoc, query: string | undefined): string[] {
+function matchesFor(doc: SearchDoc, query: string | undefined): string[] {
   if (!query) return [];
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return [];
-  const chunks = textFields(doc.entity as DwgEntity);
-  return chunks
+  return textFields(doc.entity)
     .filter((chunk) => {
       const lower = chunk.toLowerCase();
       return terms.some((term) => lower.includes(term));
     })
-    .slice(0, 5);
+    .slice(0, MAX_MATCHES);
+}
+
+async function loadSearchCorpus(
+  file: string,
+  opts: DwgSearchOptions,
+  loadOpts: LoadOptions,
+): Promise<{ docs: SearchDoc[]; index: MiniSearch<SearchDoc> }> {
+  const fingerprint = computeDrawingFingerprint(file);
+  const cached = loadSearchCache(file, fingerprint, opts.cacheDir);
+
+  if (cached) {
+    return {
+      docs: cached.docs as SearchDoc[],
+      index: loadSearchIndex(cached.index),
+    };
+  }
+
+  const docs = buildDocs(await loadDrawing(file, loadOpts));
+  const index = buildIndex(docs);
+  saveSearchCache(
+    file,
+    { fingerprint, index: JSON.stringify(index), docs },
+    opts.cacheDir,
+  );
+  return { docs, index };
+}
+
+function resultScore(result: { score?: number }): number {
+  return Math.round((Number(result.score) || 1) * 10) / 10;
 }
 
 export async function searchDrawing(
@@ -105,63 +163,30 @@ export async function searchDrawing(
   opts: DwgSearchOptions = {},
   loadOpts: LoadOptions = {},
 ): Promise<DwgSearchResult[]> {
-  const fingerprint = computeDrawingFingerprint(file);
-  const cached = loadSearchCache(file, fingerprint, opts.cacheDir);
-  let docs: CachedSearchDoc[];
-  let index: MiniSearch<CachedSearchDoc>;
-
-  if (cached) {
-    docs = cached.docs;
-    index = MiniSearch.loadJSON<CachedSearchDoc>(cached.index, {
-      fields: ["entityId", "type", "layer", "text"],
-      storeFields: ["entityId", "type", "layer", "text"],
-      searchOptions: {
-        boost: { entityId: 3, type: 2, layer: 2, text: 1 },
-        fuzzy: 0.2,
-        prefix: true,
-      },
-    });
-  } else {
-    docs = buildDocs(await loadDrawing(file, loadOpts));
-    index = buildIndex(docs);
-    saveSearchCache(
-      file,
-      { fingerprint, index: JSON.stringify(index), docs },
-      opts.cacheDir,
-    );
-  }
-
+  const { docs, index } = await loadSearchCorpus(file, opts, loadOpts);
   const query = opts.query?.trim();
-  const raw = query
-    ? index.search(query)
-    : docs.map((doc) => ({ ...doc, score: 1 }));
   const byId = new Map(docs.map((doc) => [doc.id, doc]));
-  const limit = opts.limit ?? 30;
+  const raw: SearchHit[] = query
+    ? index.search(query).map((result) => ({
+        id: Number(result.id),
+        score: result.score,
+      }))
+    : docs.map((doc) => ({ id: doc.id, score: 1 }));
 
   return raw
-    .map((result) => {
-      const doc = byId.get(result.id as number) ?? (result as CachedSearchDoc);
-      return {
-        entityId: doc.entityId,
-        type: doc.type,
-        layer: doc.layer,
-        score: Math.round((Number(result.score) || 1) * 10) / 10,
-        matches: opts.snippets === false ? [] : matchesFor(doc, query),
-        entity: doc.entity as DwgEntity,
-      };
-    })
-    .filter((result) => filterDoc(resultToCachedDoc(result), opts))
+    .map((result) => ({ result, doc: byId.get(result.id) }))
+    .filter((item): item is { result: SearchHit; doc: SearchDoc } =>
+      Boolean(item.doc),
+    )
+    .filter(({ doc }) => matchesFilter(doc, opts))
+    .map(({ result, doc }) => ({
+      entityId: doc.entityId,
+      type: doc.type,
+      layer: doc.layer,
+      score: resultScore(result),
+      matches: opts.snippets === false ? [] : matchesFor(doc, query),
+      entity: doc.entity,
+    }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-}
-
-function resultToCachedDoc(result: DwgSearchResult): CachedSearchDoc {
-  return {
-    id: 0,
-    entityId: result.entityId,
-    type: result.type,
-    layer: result.layer,
-    text: "",
-    entity: result.entity,
-  };
+    .slice(0, opts.limit ?? DEFAULT_LIMIT);
 }

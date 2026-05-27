@@ -41,6 +41,37 @@ function cacheFileFor(file: string, cacheDir?: string): string {
   return join(root, "search", `${basename(file)}-${key}.search.json`);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function isCachedSearchDoc(value: unknown): value is CachedSearchDoc {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "number" &&
+    typeof value.entityId === "string" &&
+    typeof value.type === "string" &&
+    (value.layer === undefined || typeof value.layer === "string") &&
+    typeof value.text === "string" &&
+    value.entity !== undefined
+  );
+}
+
+function parseSearchCache(value: unknown): SearchCacheData | null {
+  if (!isRecord(value)) return null;
+  if (value.version !== CACHE_VERSION) return null;
+  if (typeof value.fingerprint !== "string") return null;
+  if (typeof value.index !== "string") return null;
+  if (!Array.isArray(value.docs)) return null;
+  if (!value.docs.every(isCachedSearchDoc)) return null;
+  return {
+    version: CACHE_VERSION,
+    fingerprint: value.fingerprint,
+    index: value.index,
+    docs: value.docs,
+  };
+}
+
 export function loadSearchCache(
   file: string,
   fingerprint: string,
@@ -49,11 +80,8 @@ export function loadSearchCache(
   const cachePath = cacheFileFor(file, cacheDir);
   if (!existsSync(cachePath)) return null;
   try {
-    const data = JSON.parse(
-      readFileSync(cachePath, "utf-8"),
-    ) as SearchCacheData;
-    if (data.version !== CACHE_VERSION) return null;
-    if (data.fingerprint !== fingerprint) return null;
+    const data = parseSearchCache(JSON.parse(readFileSync(cachePath, "utf-8")));
+    if (!data || data.fingerprint !== fingerprint) return null;
     return data;
   } catch {
     return null;
