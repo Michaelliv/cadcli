@@ -4,18 +4,24 @@
   "description": "Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "bin": {
     "cadcli": "./dist/main.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "patches"
   ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "ci": "bun test --coverage && bun run build && bunx biome check src/",
     "dev": "bun run src/main.ts",
     "build:bun": "bun build --compile src/main.ts --outfile cadcli",
     "build:bun-linux": "bun build --compile --target=bun-linux-x64 src/main.ts --outfile cadcli-linux-x64",

@@ -16,7 +16,6 @@ dist
 
 # Bun
 bun.lockb
-bun.lock
 
 # dotenv
 .env
