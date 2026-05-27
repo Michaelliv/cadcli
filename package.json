@@ -51,9 +51,13 @@
     "typescript": "^5.8.0"
   },
   "dependencies": {
+    "@node-projects/acad-ts": "2.3.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "minisearch": "^7.2.0",
     "nanoid": "^5.1.6"
+  },
+  "patchedDependencies": {
+    "@node-projects/acad-ts@2.3.0": "patches/@node-projects%2Facad-ts@2.3.0.patch"
   }
 }

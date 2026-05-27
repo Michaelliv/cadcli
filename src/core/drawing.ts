@@ -9,7 +9,7 @@ import type {
   ThumbnailResult,
 } from "../types.js";
 import { EXIT_UNAVAILABLE, EXIT_USER_ERROR } from "../utils/exit-codes.js";
-import { NativeLibreDwgReader } from "./adapter.js";
+import { AcadTsReader } from "./adapter.js";
 import { DwgCliError } from "./errors.js";
 import { readCadFile } from "./files.js";
 import { normalizeDocument } from "./normalize.js";
@@ -21,7 +21,7 @@ export interface LoadOptions {
 }
 
 function readerFor(opts: LoadOptions): DrawingReader {
-  return opts.reader ?? new NativeLibreDwgReader(opts.toolDir);
+  return opts.reader ?? new AcadTsReader();
 }
 
 export async function loadDrawing(
