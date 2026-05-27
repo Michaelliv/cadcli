@@ -7,7 +7,6 @@ import { blocks } from "./commands/blocks.js";
 import { edit } from "./commands/edit.js";
 import { entities } from "./commands/entities.js";
 import { info } from "./commands/info.js";
-import { init } from "./commands/init.js";
 import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
 import { search } from "./commands/search.js";
@@ -34,9 +33,6 @@ Examples:
   $ cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
 
 Workflow: info → search/entities → view/edit
-
-Getting started:
-  init                 Create .cadcli/ config/cache directory
 
 Inspecting:
   info <file>          Drawing metadata and counts
@@ -82,10 +78,6 @@ program.hook("preAction", (cmd) => {
   if (cmd.optsWithGlobals().color === false) chalk.level = 0;
 });
 
-program
-  .command("init")
-  .description("Create .cadcli/ in current directory")
-  .action(async (_opts, cmd) => init(cmd.optsWithGlobals()));
 program
   .command("info <file>")
   .description("Show drawing metadata and summary")

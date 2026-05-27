@@ -23,7 +23,7 @@ bunx biome format --write src/
 
 All TypeScript imports use `.js` extensions. The npm CLI entry uses `#!/usr/bin/env node`, not Bun. Human output is concise, JSON output is stable, and diagnostics go to stderr. Every command follows the output triple: human, `--json`, and `--quiet` where relevant. Exit codes live in `src/utils/exit-codes.ts`.
 
-`.cadcli/` is git-native local project state for config/cache. `init` creates it idempotently.
+Search indexes are cached automatically in the platform-standard cache directory. Use `CADCLI_CACHE_DIR` to override it during tests or one-off runs.
 
 ## LibreDWG backend
 

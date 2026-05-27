@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { initStore } from "../store.js";
 import type { DwgParser } from "../types.js";
 import {
   filterEntities,
@@ -143,8 +142,8 @@ describe("drawing core", () => {
     expect(noQuery[0].matches).toEqual([]);
   });
 
-  test("search caches indexes in .cadcli/cache when initialized", async () => {
-    initStore(dir);
+  test("search caches indexes in the standard cache directory", async () => {
+    const cacheDir = join(dir, "cache");
     let parses = 0;
     const countingParser: DwgParser = {
       async parse() {
@@ -154,16 +153,16 @@ describe("drawing core", () => {
     };
     await searchDrawing(
       file,
-      { query: "circle", cwd: dir },
+      { query: "circle", cacheDir },
       { parser: countingParser },
     );
     await searchDrawing(
       file,
-      { query: "circle", cwd: dir },
+      { query: "circle", cacheDir },
       { parser: countingParser },
     );
     expect(parses).toBe(1);
-    expect(existsSync(join(dir, ".cadcli", "cache"))).toBe(true);
+    expect(existsSync(join(cacheDir, "search"))).toBe(true);
   });
 
   test("renders common entities to SVG and reports unsupported", async () => {

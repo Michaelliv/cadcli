@@ -9,7 +9,6 @@ npm install -g cadcli
 ## Quick start
 
 ```bash
-cadcli init
 cadcli info drawing.dwg
 cadcli layers drawing.dwg --json
 cadcli entities drawing.dwg --type LINE --limit 20
@@ -22,7 +21,6 @@ Workflow: **info → search/entities → view/edit**.
 
 ## Commands
 
-- `cadcli init` — create `.cadcli/` config/cache directory.
 - `cadcli info <file>` — metadata, version, counts, layers, blocks, bounds.
 - `cadcli layers <file>` — list layers and entity counts.
 - `cadcli blocks <file>` — list blocks.
@@ -34,7 +32,7 @@ Workflow: **info → search/entities → view/edit**.
 - `cadcli svg <file>` — print/write best-effort SVG with libredwg-web for common entities.
 - `cadcli thumbnail <file>` — extract an embedded thumbnail when available.
 
-All commands support `--json` for structured output and `-q, --quiet` for scripts.
+All commands support `--json` for structured output and `-q, --quiet` for scripts. Search indexes are cached automatically in the platform-standard cache directory (`~/Library/Caches/cadcli` on macOS, `$XDG_CACHE_HOME/cadcli` or `~/.cache/cadcli` on Linux, and `%LOCALAPPDATA%\\cadcli\\Cache` on Windows). Set `CADCLI_CACHE_DIR` to override it.
 
 ## SDK
 

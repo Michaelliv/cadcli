@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { initStore } from "../store.js";
 import {
   computeDrawingFingerprint,
   loadSearchCache,
@@ -9,29 +8,26 @@ import {
 } from "./search-cache.js";
 
 describe("search cache", () => {
-  test("saves, loads, invalidates, and ignores missing roots/corruption", () => {
+  test("saves, loads, invalidates, and ignores corruption", () => {
     const dir = `/tmp/cadcli-cache-${Date.now()}-${Math.random()}`;
+    const cacheDir = join(dir, "cache");
     mkdirSync(dir, { recursive: true });
     const file = join(dir, "drawing.dwg");
     writeFileSync(file, "fake");
     const fingerprint = computeDrawingFingerprint(file);
 
-    expect(loadSearchCache(file, fingerprint, dir)).toBe(null);
-    saveSearchCache(file, { fingerprint, index: "{}", docs: [] }, dir);
-    expect(loadSearchCache(file, fingerprint, dir)).toBe(null);
-
-    initStore(dir);
-    saveSearchCache(file, { fingerprint, index: "{}", docs: [] }, dir);
-    expect(loadSearchCache(file, fingerprint, dir)?.fingerprint).toBe(
+    expect(loadSearchCache(file, fingerprint, cacheDir)).toBe(null);
+    saveSearchCache(file, { fingerprint, index: "{}", docs: [] }, cacheDir);
+    expect(loadSearchCache(file, fingerprint, cacheDir)?.fingerprint).toBe(
       fingerprint,
     );
-    expect(loadSearchCache(file, "wrong", dir)).toBe(null);
+    expect(loadSearchCache(file, "wrong", cacheDir)).toBe(null);
 
-    const cacheDir = join(dir, ".cadcli", "cache");
-    const files = readdirSync(cacheDir).filter((name) =>
+    const searchDir = join(cacheDir, "search");
+    const files = readdirSync(searchDir).filter((name) =>
       name.startsWith(basename(file)),
     );
-    writeFileSync(join(cacheDir, files[0]), "not json");
-    expect(loadSearchCache(file, fingerprint, dir)).toBe(null);
+    writeFileSync(join(searchDir, files[0]), "not json");
+    expect(loadSearchCache(file, fingerprint, cacheDir)).toBe(null);
   });
 });

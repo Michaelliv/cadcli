@@ -1,18 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DwgParser } from "../types.js";
 import { blocks } from "./blocks.js";
 import { edit } from "./edit.js";
 import { entities } from "./entities.js";
 import { info } from "./info.js";
-import { init } from "./init.js";
 import { json } from "./json.js";
 import { layers } from "./layers.js";
 import { search } from "./search.js";
@@ -93,18 +86,6 @@ function addTool(name: string, body: string): void {
 }
 
 describe("commands", () => {
-  test("init is idempotent and supports json/quiet", async () => {
-    await init({ cwd: dir, json: true });
-    expect(JSON.parse(stdout).created).toBe(true);
-    resetOutput();
-    await init({ cwd: dir, quiet: true });
-    expect(stdout).toBe("");
-    resetOutput();
-    await init({ cwd: dir });
-    expect(stdout).toContain("Already initialized .cadcli/");
-    expect(existsSync(join(dir, ".cadcli", "config.json"))).toBe(true);
-  });
-
   test("info, layers, blocks, and entities support json output", async () => {
     await info(file, { json: true, parser });
     expect(JSON.parse(stdout).counts.entities).toBe(1);

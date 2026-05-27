@@ -13,7 +13,7 @@ export interface DwgSearchOptions extends EntityFilter {
   limit?: number;
   score?: boolean;
   snippets?: boolean;
-  cwd?: string;
+  cacheDir?: string;
 }
 
 export interface DwgSearchResult {
@@ -106,7 +106,7 @@ export async function searchDrawing(
   loadOpts: LoadOptions = {},
 ): Promise<DwgSearchResult[]> {
   const fingerprint = computeDrawingFingerprint(file);
-  const cached = loadSearchCache(file, fingerprint, opts.cwd);
+  const cached = loadSearchCache(file, fingerprint, opts.cacheDir);
   let docs: CachedSearchDoc[];
   let index: MiniSearch<CachedSearchDoc>;
 
@@ -127,7 +127,7 @@ export async function searchDrawing(
     saveSearchCache(
       file,
       { fingerprint, index: JSON.stringify(index), docs },
-      opts.cwd,
+      opts.cacheDir,
     );
   }
 

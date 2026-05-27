@@ -1,42 +1,32 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DATA_DIR = ".cadcli";
+const APP_NAME = "cadcli";
 
-export interface DwgConfig {
-  created: string;
-  cache: boolean;
+export interface CacheDirOptions {
+  env?: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
+  home?: string;
 }
 
-export function findRoot(start = process.cwd()): string | null {
-  let dir = start;
-  while (true) {
-    const candidate = join(dir, DATA_DIR);
-    if (existsSync(candidate)) return candidate;
-    const parent = join(dir, "..");
-    if (parent === dir) return null;
-    dir = parent;
+export function getCacheDir(options: CacheDirOptions = {}): string {
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
+  const home = options.home ?? homedir();
+
+  if (env.CADCLI_CACHE_DIR) return env.CADCLI_CACHE_DIR;
+
+  if (platform === "darwin") {
+    return join(home, "Library", "Caches", APP_NAME);
   }
-}
 
-export function initStore(cwd = process.cwd()): {
-  path: string;
-  created: boolean;
-} {
-  const root = join(cwd, DATA_DIR);
-  const created = !existsSync(root);
-  mkdirSync(join(root, "cache"), { recursive: true });
-  const configPath = join(root, "config.json");
-  if (!existsSync(configPath)) {
-    const config: DwgConfig = {
-      created: new Date().toISOString(),
-      cache: true,
-    };
-    writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  if (platform === "win32") {
+    return join(
+      env.LOCALAPPDATA ?? join(home, "AppData", "Local"),
+      APP_NAME,
+      "Cache",
+    );
   }
-  return { path: root, created };
-}
 
-export function readConfig(root: string): DwgConfig {
-  return JSON.parse(readFileSync(join(root, "config.json"), "utf-8"));
+  return join(env.XDG_CACHE_HOME ?? join(home, ".cache"), APP_NAME);
 }

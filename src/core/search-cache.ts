@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { findRoot } from "../store.js";
+import { getCacheDir } from "../store.js";
 import { stringifyJson } from "../utils/output.js";
 
 const CACHE_VERSION = 1;
@@ -35,20 +35,19 @@ export function computeDrawingFingerprint(file: string): string {
     .digest("hex");
 }
 
-function cacheFileFor(file: string, cwd = process.cwd()): string | null {
-  const root = findRoot(cwd);
-  if (!root) return null;
+function cacheFileFor(file: string, cacheDir?: string): string {
+  const root = cacheDir ?? getCacheDir();
   const key = createHash("sha1").update(resolve(file)).digest("hex");
-  return join(root, "cache", `${basename(file)}-${key}.search.json`);
+  return join(root, "search", `${basename(file)}-${key}.search.json`);
 }
 
 export function loadSearchCache(
   file: string,
   fingerprint: string,
-  cwd?: string,
+  cacheDir?: string,
 ): SearchCacheData | null {
-  const cachePath = cacheFileFor(file, cwd);
-  if (!cachePath || !existsSync(cachePath)) return null;
+  const cachePath = cacheFileFor(file, cacheDir);
+  if (!existsSync(cachePath)) return null;
   try {
     const data = JSON.parse(
       readFileSync(cachePath, "utf-8"),
@@ -64,10 +63,9 @@ export function loadSearchCache(
 export function saveSearchCache(
   file: string,
   data: Omit<SearchCacheData, "version">,
-  cwd?: string,
+  cacheDir?: string,
 ): void {
-  const cachePath = cacheFileFor(file, cwd);
-  if (!cachePath) return;
+  const cachePath = cacheFileFor(file, cacheDir);
   mkdirSync(dirname(cachePath), { recursive: true });
   writeFileSync(cachePath, stringifyJson({ version: CACHE_VERSION, ...data }));
 }
