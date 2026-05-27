@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync } from "node:fs";
-import { basename } from "node:path";
+import { copyFileSync, existsSync } from "node:fs";
+import { basename, join } from "node:path";
 import {
   EXIT_ERROR,
   EXIT_UNAVAILABLE,
@@ -50,7 +50,11 @@ const TOOLS = [
   "dxf2dwg",
 ];
 
-function which(tool: string): string | undefined {
+function which(tool: string, toolDir?: string): string | undefined {
+  if (toolDir) {
+    const candidate = join(toolDir, tool);
+    if (existsSync(candidate)) return candidate;
+  }
   const result = spawnSync("/bin/sh", ["-lc", `command -v ${tool}`], {
     encoding: "utf-8",
   });
@@ -58,12 +62,12 @@ function which(tool: string): string | undefined {
   return result.status === 0 && found ? found : undefined;
 }
 
-export function getLibreDwgStatus(): LibreDwgStatus {
+export function getLibreDwgStatus(toolDir?: string): LibreDwgStatus {
   return {
     backend: "LibreDWG",
     mode: "native+wasm",
     tools: TOOLS.map((name) => {
-      const path = which(name);
+      const path = which(name, toolDir);
       return { name, available: Boolean(path), ...(path ? { path } : {}) };
     }),
     viewing: "native dwgread when available; wasm/internal fallback otherwise",
@@ -71,8 +75,8 @@ export function getLibreDwgStatus(): LibreDwgStatus {
   };
 }
 
-function requireTool(tool: string): string {
-  const path = which(tool);
+function requireTool(tool: string, toolDir?: string): string {
+  const path = which(tool, toolDir);
   if (!path) {
     throw new DwgCliError(
       `LibreDWG tool not found: ${tool}. Install LibreDWG and make sure ${tool} is on PATH.`,
@@ -86,8 +90,9 @@ function requireTool(tool: string): string {
 function runTool(
   tool: string,
   args: string[],
+  toolDir?: string,
 ): { stdout: string; stderr: string } {
-  const path = requireTool(tool);
+  const path = requireTool(tool, toolDir);
   const result = spawnSync(path, args, { encoding: "utf-8" });
   if (result.error) {
     throw new DwgCliError(
@@ -106,8 +111,11 @@ function runTool(
   return { stdout: result.stdout, stderr: result.stderr };
 }
 
-export function renderSvgWithLibreDwg(file: string): LibreDwgViewResult {
-  const result = runTool("dwgread", ["-O", "SVG", file]);
+export function renderSvgWithLibreDwg(
+  file: string,
+  opts: { toolDir?: string } = {},
+): LibreDwgViewResult {
+  const result = runTool("dwgread", ["-O", "SVG", file], opts.toolDir);
   return {
     input: file,
     svg: result.stdout,
@@ -122,6 +130,7 @@ export function editWithLibreDwgFilter(opts: {
   output: string;
   expression: string;
   overwrite?: boolean;
+  toolDir?: string;
 }): LibreDwgEditResult {
   if (opts.input === opts.output && !opts.overwrite) {
     throw new DwgCliError(
@@ -131,7 +140,11 @@ export function editWithLibreDwgFilter(opts: {
     );
   }
   if (opts.input !== opts.output) copyFileSync(opts.input, opts.output);
-  const result = runTool("dwgfilter", ["-i", opts.expression, opts.output]);
+  const result = runTool(
+    "dwgfilter",
+    ["-i", opts.expression, opts.output],
+    opts.toolDir,
+  );
   return {
     input: opts.input,
     output: opts.output,

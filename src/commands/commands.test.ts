@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { DwgParser } from "../types.js";
 import { backend } from "./backend.js";
 import { blocks } from "./blocks.js";
+import { edit } from "./edit.js";
 import { entities } from "./entities.js";
 import { info } from "./info.js";
 import { init } from "./init.js";
@@ -13,6 +20,7 @@ import { onboard } from "./onboard.js";
 import { search } from "./search.js";
 import { svg } from "./svg.js";
 import { thumbnail } from "./thumbnail.js";
+import { view } from "./view.js";
 
 let stdout = "";
 let stderr = "";
@@ -78,6 +86,14 @@ afterEach(() => {
   process.exit = oldExit;
 });
 
+function addTool(name: string, body: string): void {
+  const binDir = join(dir, "bin");
+  mkdirSync(binDir, { recursive: true });
+  const toolPath = join(binDir, name);
+  writeFileSync(toolPath, `#!/bin/sh\n${body}\n`);
+  chmodSync(toolPath, 0o755);
+}
+
 describe("commands", () => {
   test("init is idempotent and supports json/quiet", async () => {
     await init({ cwd: dir, json: true });
@@ -85,24 +101,39 @@ describe("commands", () => {
     resetOutput();
     await init({ cwd: dir, quiet: true });
     expect(stdout).toBe("");
+    resetOutput();
+    await init({ cwd: dir });
+    expect(stdout).toContain("Already initialized .cadcli/");
     expect(existsSync(join(dir, ".cadcli", "config.json"))).toBe(true);
   });
 
   test("onboard is idempotent and prefers CLAUDE.md", async () => {
+    const freshDir = join(dir, "fresh-onboard");
+    mkdirSync(freshDir, { recursive: true });
+    await onboard({ cwd: freshDir });
+    expect(stdout).toContain("Added cadcli instructions");
+    resetOutput();
     await onboard({ cwd: dir, json: true });
     expect(readFileSync(join(dir, "CLAUDE.md"), "utf-8")).toContain("<cadcli>");
+    resetOutput();
+    await onboard({ cwd: dir });
+    expect(stdout).toContain("Already onboarded");
     resetOutput();
     await onboard({ cwd: dir, json: true });
     expect(JSON.parse(stdout).message).toBe("already_onboarded");
   });
 
   test("backend reports LibreDWG as the main backend", async () => {
-    await backend({ json: true });
+    await backend({ json: true, toolDir: join(dir, "bin") });
     const parsed = JSON.parse(stdout);
     expect(parsed.backend).toBe("LibreDWG");
     expect(
       parsed.tools.some((tool: { name: string }) => tool.name === "dwgread"),
     ).toBe(true);
+    resetOutput();
+    await backend({ toolDir: join(dir, "bin") });
+    expect(stdout).toContain("LibreDWG");
+    expect(stdout).toContain("dwgread");
   });
 
   test("info, layers, blocks, and entities support json output", async () => {
@@ -126,7 +157,7 @@ describe("commands", () => {
     expect(parsed.results[0].score).toBeGreaterThan(0);
     expect(parsed.results[0].matches.length).toBeGreaterThan(0);
     resetOutput();
-    await search(file, { parser, total: true, type: "LINE" });
+    await search(file, { parser, total: true, type: "LINE", limit: "1" });
     expect(stdout.trim()).toBe("1");
   });
 
@@ -142,20 +173,110 @@ describe("commands", () => {
     resetOutput();
     await entities(file, { parser, total: true });
     expect(stdout.trim()).toBe("1");
+    resetOutput();
+    await layers(file, { parser });
+    expect(stdout).toContain("0");
+    resetOutput();
+    await blocks(file, { parser });
+    expect(stdout).toContain("Model");
+    resetOutput();
+    await entities(file, { parser });
+    expect(stdout).toContain("LINE");
+    resetOutput();
+    await search(file, { parser, query: "line", score: true });
+    expect(stdout).toContain("score");
+  });
+
+  test("view and edit use LibreDWG native tools", async () => {
+    addTool("dwgread", "echo '<svg>native</svg>'");
+    const viewOut = join(dir, "view.svg");
+    await view(file, {
+      output: viewOut,
+      json: true,
+      toolDir: join(dir, "bin"),
+    });
+    expect(JSON.parse(stdout).tool).toBe("dwgread");
+    expect(readFileSync(viewOut, "utf-8")).toContain("native");
+    resetOutput();
+
+    addTool("dwgfilter", "echo edited >&2");
+    const editOut = join(dir, "edited.dwg");
+    await edit(file, {
+      jq: ".",
+      output: editOut,
+      json: true,
+      toolDir: join(dir, "bin"),
+    });
+    expect(JSON.parse(stdout).tool).toBe("dwgfilter");
+    resetOutput();
+    await edit(file, {
+      jq: ".",
+      output: editOut,
+      toolDir: join(dir, "bin"),
+    });
+    expect(stdout).toContain("Edited");
+    resetOutput();
+    expect(readFileSync(editOut, "utf-8")).toBe("fake");
+    resetOutput();
+    await view(file, { json: true, toolDir: join(dir, "bin") });
+    expect(JSON.parse(stdout).svg).toContain("native");
+    resetOutput();
+    await view(file, {
+      parser,
+      output: join(dir, "fallback.svg"),
+      toolDir: join(dir, "empty-bin"),
+    });
+    expect(stdout).toContain("libredwg-web+internal-svg");
+  });
+
+  test("view writes SVG to stdout in human mode", async () => {
+    addTool("dwgread", "echo '<svg>stdout</svg>'");
+    await view(file, { toolDir: join(dir, "bin") });
+    expect(stdout).toContain("stdout");
+  });
+
+  test("edit validates jq input and native tool availability", async () => {
+    await expect(edit(file, {})).rejects.toThrow("exit:1");
+    expect(stderr).toContain("No edit expression specified");
+    resetOutput();
+    await expect(
+      edit(file, {
+        jq: ".",
+        output: join(dir, "x.dwg"),
+        toolDir: join(dir, "bin"),
+      }),
+    ).rejects.toThrow("exit:4");
+    expect(stderr).toContain("LibreDWG tool not found");
   });
 
   test("json, svg, and thumbnail write output files", async () => {
     const jsonOut = join(dir, "out.json");
     await json(file, { output: jsonOut, quiet: true, parser });
     expect(stdout).toBe("");
+    resetOutput();
+    await json(file, { output: jsonOut, json: true, parser });
+    expect(JSON.parse(stdout).success).toBe(true);
+    resetOutput();
+    await json(file, { output: jsonOut, parser });
+    expect(stdout).toContain("Wrote");
+    resetOutput();
     expect(JSON.parse(readFileSync(jsonOut, "utf-8")).entities).toHaveLength(1);
     const svgOut = join(dir, "out.svg");
     await svg(file, { output: svgOut, json: true, parser });
     expect(readFileSync(svgOut, "utf-8")).toContain("<svg");
     resetOutput();
+    await svg(file, { output: svgOut, parser });
+    expect(stdout).toContain("rendered");
+    resetOutput();
     const pngOut = join(dir, "thumb.png");
     await thumbnail(file, { output: pngOut, json: true, parser });
     expect(JSON.parse(stdout).bytes).toBe(3);
+    resetOutput();
+    await thumbnail(file, { parser });
+    expect(stdout).toContain("Thumbnail available");
+    resetOutput();
+    await thumbnail(file, { output: pngOut, parser });
+    expect(stdout).toContain("Wrote");
   });
 
   test("json, svg, and thumbnail can write primary data to stdout", async () => {
@@ -196,7 +317,32 @@ describe("commands", () => {
     await expect(info(file, { parser: badParser })).rejects.toThrow("exit:1");
     expect(stderr).toContain("bad cad");
     resetOutput();
+    await expect(blocks(file, { parser: badParser })).rejects.toThrow("exit:1");
+    expect(stderr).toContain("bad cad");
+    resetOutput();
+    await expect(layers(file, { parser: badParser })).rejects.toThrow("exit:1");
+    expect(stderr).toContain("bad cad");
+    resetOutput();
+    await expect(search(file, { parser, limit: "bad" })).rejects.toThrow(
+      "exit:1",
+    );
+    expect(stderr).toContain("Invalid limit");
+    resetOutput();
+    await expect(svg(file, { parser: badParser })).rejects.toThrow("exit:1");
+    expect(stderr).toContain("bad cad");
+    resetOutput();
+    addTool("dwgread", "echo nope >&2; exit 2");
+    await expect(view(file, { toolDir: join(dir, "bin") })).rejects.toThrow(
+      "exit:2",
+    );
+    expect(stderr).toContain("dwgread failed");
+    resetOutput();
     await expect(json(file, { parser, output: dir })).rejects.toThrow("exit:2");
     expect(stderr).toContain("Could not write output");
+    resetOutput();
+    await expect(entities(file, { parser, limit: "bad" })).rejects.toThrow(
+      "exit:1",
+    );
+    expect(stderr).toContain("Invalid limit");
   });
 });

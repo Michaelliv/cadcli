@@ -2,12 +2,15 @@ import { toSvg } from "../core/drawing.js";
 import { DwgCliError } from "../core/errors.js";
 import { writeOutput } from "../core/files.js";
 import { renderSvgWithLibreDwg } from "../core/libredwg.js";
+import type { DwgParser } from "../types.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success } from "../utils/output.js";
 import { handleCommandError } from "./shared.js";
 
 export interface ViewOptions extends OutputOptions {
   output?: string;
+  toolDir?: string;
+  parser?: DwgParser;
 }
 
 export async function view(file: string, options: ViewOptions): Promise<void> {
@@ -15,7 +18,7 @@ export async function view(file: string, options: ViewOptions): Promise<void> {
     let svg: string;
     let tool: string;
     try {
-      const result = renderSvgWithLibreDwg(file);
+      const result = renderSvgWithLibreDwg(file, { toolDir: options.toolDir });
       svg = result.svg;
       tool = result.tool;
     } catch (err) {
@@ -24,7 +27,7 @@ export async function view(file: string, options: ViewOptions): Promise<void> {
         err.code !== "LIBREDWG_TOOL_NOT_FOUND"
       )
         throw err;
-      const fallback = await toSvg(file);
+      const fallback = await toSvg(file, { parser: options.parser });
       svg = fallback.svg;
       tool = "libredwg-web+internal-svg";
     }

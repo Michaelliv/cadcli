@@ -72,20 +72,22 @@ export class Dwg {
     return toSvg(this.file, this.opts);
   }
 
-  view(): LibreDwgViewResult {
-    return renderSvgWithLibreDwg(this.file);
+  view(opts: { toolDir?: string } = {}): LibreDwgViewResult {
+    return renderSvgWithLibreDwg(this.file, opts);
   }
 
   edit(opts: {
     output: string;
     expression: string;
     overwrite?: boolean;
+    toolDir?: string;
   }): LibreDwgEditResult {
     return editWithLibreDwgFilter({
       input: this.file,
       output: opts.output,
       expression: opts.expression,
       overwrite: opts.overwrite,
+      toolDir: opts.toolDir,
     });
   }
 

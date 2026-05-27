@@ -19,6 +19,8 @@ type LibreDwgModule = {
   Dwg_File_Type: Record<string, unknown>;
 };
 
+type LibreDwgModuleLoader = () => Promise<LibreDwgModule>;
+
 function defaultWasmPath(): string | undefined {
   try {
     const require = createRequire(import.meta.url);
@@ -43,7 +45,11 @@ export class LibredwgParser implements DwgParser {
   private lib?: LibreDwgInstance;
   private fileType?: Record<string, unknown>;
 
-  constructor(private readonly wasmPath?: string) {}
+  constructor(
+    private readonly wasmPath?: string,
+    private readonly moduleLoader: LibreDwgModuleLoader = () =>
+      import("@mlightcad/libredwg-web") as Promise<LibreDwgModule>,
+  ) {}
 
   async parse(
     _file: string,
@@ -85,7 +91,7 @@ export class LibredwgParser implements DwgParser {
   private async ensureLoaded(): Promise<void> {
     if (this.lib) return;
     try {
-      const mod = (await import("@mlightcad/libredwg-web")) as LibreDwgModule;
+      const mod = await this.moduleLoader();
       this.lib = await mod.LibreDwg.create(this.wasmPath ?? defaultWasmPath());
       this.fileType = mod.Dwg_File_Type;
     } catch (error) {

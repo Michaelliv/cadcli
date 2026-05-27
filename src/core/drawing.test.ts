@@ -3,9 +3,17 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { initStore } from "../store.js";
 import type { DwgParser } from "../types.js";
-import { getEntities, getThumbnail, loadDrawing, toSvg } from "./drawing.js";
+import {
+  filterEntities,
+  getEntities,
+  getThumbnail,
+  loadDrawing,
+  toSvg,
+} from "./drawing.js";
 import { DwgCliError } from "./errors.js";
+import { normalizeDocument } from "./normalize.js";
 import { searchDrawing } from "./search.js";
+import { renderSvg } from "./svg.js";
 
 let dir = "";
 let file = "";
@@ -29,7 +37,7 @@ const raw = {
       center: { x: 5, y: 5 },
       radius: 2,
     },
-    { handle: "12", type: "SPLINE", layer: "A-WALL" },
+    { handle: "12", type: "SPLINE", layer: "A-WALL", custom: () => "ignored" },
   ],
 };
 
@@ -64,6 +72,34 @@ describe("drawing core", () => {
     expect(doc.summary.bounds).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 5 });
   });
 
+  test("normalizes alternate raw database shapes", () => {
+    const doc = normalizeDocument("alt.dxf", "DXF", {
+      headerVersion: "AC1018",
+      Layers: [{ Name: "Layer A" }],
+      blockHeaders: [{ Name: "Block A", Entities: [{ type: "LINE" }] }],
+      Objects: [
+        {
+          Handle: "H1",
+          Type: "TEXT",
+          Layer: "Layer A",
+          color: 7,
+          point: { X: 1, Y: 2 },
+        },
+        { objectType: "point", layer_name: "Layer B", points: [[3, 4]] },
+        null,
+      ],
+    });
+    expect(doc.summary.version).toBe("AC1018");
+    expect(doc.summary.format).toBe("DXF");
+    expect(doc.layers.map((layer) => layer.name)).toEqual([
+      "Layer A",
+      "Layer B",
+    ]);
+    expect(doc.blocks[0]).toEqual({ name: "Block A", entityCount: 1 });
+    expect(doc.entities[0].id).toBe("H1");
+    expect(doc.entities[2].type).toBe("UNKNOWN");
+  });
+
   test("filters entities by type and layer", async () => {
     const entities = await getEntities(
       file,
@@ -72,6 +108,11 @@ describe("drawing core", () => {
     );
     expect(entities).toHaveLength(1);
     expect(entities[0].id).toBe("11");
+    expect(
+      filterEntities((await loadDrawing(file, { parser })).entities, {
+        limit: 2,
+      }),
+    ).toHaveLength(2);
   });
 
   test("throws friendly errors for unknown layer/type", async () => {
@@ -92,6 +133,14 @@ describe("drawing core", () => {
     expect(results).toHaveLength(1);
     expect(results[0].entityId).toBe("11");
     expect(results[0].matches.length).toBeGreaterThan(0);
+
+    const noQuery = await searchDrawing(
+      file,
+      { limit: 2, snippets: false },
+      { parser },
+    );
+    expect(noQuery).toHaveLength(2);
+    expect(noQuery[0].matches).toEqual([]);
   });
 
   test("search caches indexes in .cadcli/cache when initialized", async () => {
@@ -124,10 +173,61 @@ describe("drawing core", () => {
     expect(result.unsupported).toBe(1);
   });
 
-  test("reports unavailable thumbnails", async () => {
+  test("renders SVG edge cases", () => {
+    const result = renderSvg({
+      summary: {
+        file: "edge.dwg",
+        format: "DWG",
+        counts: { entities: 7, layers: 0, blocks: 0, unsupported: 0 },
+      },
+      layers: [],
+      blocks: [],
+      unsupported: [],
+      raw: {},
+      entities: [
+        { id: "1", type: "LINE", data: {} },
+        { id: "2", type: "CIRCLE", data: {} },
+        {
+          id: "3",
+          type: "POLYLINE",
+          data: {
+            vertices: [
+              { x: 0, y: 0 },
+              { X: 1, Y: 1 },
+            ],
+          },
+        },
+        { id: "4", type: "LWPOLYLINE", data: { vertices: [] } },
+        {
+          id: "5",
+          type: "TEXT",
+          data: { position: { x: 1, y: 2 }, text: 'A&B<"' },
+        },
+        { id: "6", type: "MTEXT", data: {} },
+        { id: "7", type: "INSERT", data: {} },
+      ],
+    });
+    expect(result.bounds).toEqual({ minX: 0, minY: 0, maxX: 100, maxY: 100 });
+    expect(result.svg).toContain("<polyline");
+    expect(result.svg).toContain("A&amp;B&lt;&quot;");
+    expect(result.unsupported).toBe(5);
+  });
+
+  test("reports unavailable and missing thumbnails", async () => {
     await expect(getThumbnail(file, { parser })).rejects.toThrow(
       "Thumbnail extraction is not available",
     );
+    const nullThumbnailParser: DwgParser = {
+      async parse() {
+        return raw;
+      },
+      async thumbnail() {
+        return null;
+      },
+    };
+    await expect(
+      getThumbnail(file, { parser: nullThumbnailParser }),
+    ).rejects.toThrow("No thumbnail was found");
   });
 
   test("reports file not found and unsupported extensions", async () => {

@@ -7,6 +7,7 @@ export interface EditOptions extends OutputOptions {
   jq?: string;
   output?: string;
   overwrite?: boolean;
+  toolDir?: string;
 }
 
 export async function edit(file: string, options: EditOptions): Promise<void> {
@@ -18,6 +19,7 @@ export async function edit(file: string, options: EditOptions): Promise<void> {
       output: options.output ?? file,
       expression: options.jq,
       overwrite: options.overwrite,
+      toolDir: options.toolDir,
     });
     output(options, {
       json: () => ({ success: true, ...result }),
