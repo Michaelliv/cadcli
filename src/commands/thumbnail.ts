@@ -1,17 +1,15 @@
 import { getThumbnail } from "../core/drawing.js";
-import { writeOutput } from "../core/files.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
 import { output, success } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import {
+  type DrawingCommandOptions,
+  handleCommandError,
+  type OutputFileOptions,
+  writeCommandOutput,
+} from "./shared.js";
 
 export async function thumbnail(
   file: string,
-  options: OutputOptions & {
-    output?: string;
-    reader?: DrawingReader;
-    toolDir?: string;
-  },
+  options: DrawingCommandOptions & OutputFileOptions,
 ): Promise<void> {
   try {
     const result = await getThumbnail(file, {
@@ -32,16 +30,17 @@ export async function thumbnail(
       });
       return;
     }
-    writeOutput(options.output, result.data);
-    output(options, {
-      json: () => ({
+    writeCommandOutput(
+      options,
+      result.data,
+      () => ({
         success: true,
         file: options.output,
         mimeType: result.mimeType,
         bytes: result.data.length,
       }),
-      human: () => success(`Wrote ${options.output}`),
-    });
+      `Wrote ${options.output}`,
+    );
   } catch (err) {
     handleCommandError(err);
   }

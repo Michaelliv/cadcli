@@ -1,7 +1,7 @@
 import { editWithLibreDwgFilter } from "../core/libredwg.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import { handleCommandError, userError } from "./shared.js";
 
 export interface EditOptions extends OutputOptions {
   jq?: string;
@@ -12,8 +12,12 @@ export interface EditOptions extends OutputOptions {
 
 export async function edit(file: string, options: EditOptions): Promise<void> {
   try {
-    if (!options.jq)
-      throw new Error("No edit expression specified. Use --jq <expression>.");
+    if (!options.jq) {
+      throw userError(
+        "No edit expression specified. Use --jq <expression>.",
+        "MISSING_EDIT_EXPRESSION",
+      );
+    }
     const result = editWithLibreDwgFilter({
       input: file,
       output: options.output ?? file,

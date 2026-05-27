@@ -200,7 +200,7 @@ describe("commands", () => {
   });
 
   test("edit validates jq input and native tool availability", async () => {
-    await expect(edit(file, {})).rejects.toThrow("exit:1");
+    await expect(edit(file, {})).rejects.toThrow("exit:2");
     expect(stderr).toContain("No edit expression specified");
     resetOutput();
     await expect(
@@ -289,7 +289,7 @@ describe("commands", () => {
     resetOutput();
     await expect(
       search(file, { reader: parser, limit: "bad" }),
-    ).rejects.toThrow("exit:1");
+    ).rejects.toThrow("exit:2");
     expect(stderr).toContain("Invalid limit");
     resetOutput();
     await expect(svg(file, { reader: badParser })).rejects.toThrow("exit:1");
@@ -308,7 +308,7 @@ describe("commands", () => {
     resetOutput();
     await expect(
       entities(file, { reader: parser, limit: "bad" }),
-    ).rejects.toThrow("exit:1");
+    ).rejects.toThrow("exit:2");
     expect(stderr).toContain("Invalid limit");
   });
 });

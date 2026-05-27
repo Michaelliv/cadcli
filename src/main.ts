@@ -150,7 +150,7 @@ program
   );
 program
   .command("svg <file>")
-  .description("Render best-effort SVG")
+  .description("Render best-effort SVG from LibreDWG JSON")
   .option("-o, --output <path>", "Output file")
   .action(async (file, opts, cmd) =>
     svg(file, { ...cmd.optsWithGlobals(), ...opts }),

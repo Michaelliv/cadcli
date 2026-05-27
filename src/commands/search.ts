@@ -1,10 +1,12 @@
-import { Dwg } from "../sdk.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
 import { bold, dim, output } from "../utils/output.js";
-import { handleCommandError, parseLimit } from "./shared.js";
+import {
+  type DrawingCommandOptions,
+  drawingFor,
+  handleCommandError,
+  parseLimit,
+} from "./shared.js";
 
-export interface SearchOptions extends OutputOptions {
+export interface SearchOptions extends DrawingCommandOptions {
   query?: string;
   type?: string;
   layer?: string;
@@ -12,8 +14,6 @@ export interface SearchOptions extends OutputOptions {
   total?: boolean;
   score?: boolean;
   snippets?: boolean;
-  reader?: DrawingReader;
-  toolDir?: string;
 }
 
 export async function search(
@@ -21,10 +21,7 @@ export async function search(
   options: SearchOptions,
 ): Promise<void> {
   try {
-    const results = await Dwg.open(file, {
-      reader: options.reader,
-      toolDir: options.toolDir,
-    }).search({
+    const results = await drawingFor(file, options).search({
       query: options.query,
       type: options.type,
       layer: options.layer,

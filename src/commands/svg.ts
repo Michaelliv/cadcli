@@ -1,17 +1,14 @@
 import { toSvg } from "../core/drawing.js";
-import { writeOutput } from "../core/files.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
-import { output, success } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import {
+  type DrawingCommandOptions,
+  handleCommandError,
+  type OutputFileOptions,
+  writeCommandOutput,
+} from "./shared.js";
 
 export async function svg(
   file: string,
-  options: OutputOptions & {
-    output?: string;
-    reader?: DrawingReader;
-    toolDir?: string;
-  },
+  options: DrawingCommandOptions & OutputFileOptions,
 ): Promise<void> {
   try {
     const result = await toSvg(file, {
@@ -19,19 +16,17 @@ export async function svg(
       toolDir: options.toolDir,
     });
     if (options.output) {
-      writeOutput(options.output, result.svg);
-      output(options, {
-        json: () => ({
+      writeCommandOutput(
+        options,
+        result.svg,
+        () => ({
           success: true,
           file: options.output,
           rendered: result.rendered,
           unsupported: result.unsupported,
         }),
-        human: () =>
-          success(
-            `Wrote ${options.output} (${result.rendered} rendered, ${result.unsupported} unsupported)`,
-          ),
-      });
+        `Wrote ${options.output} (${result.rendered} rendered, ${result.unsupported} unsupported)`,
+      );
     } else if (options.json) {
       console.log(JSON.stringify(result, null, 2));
     } else {

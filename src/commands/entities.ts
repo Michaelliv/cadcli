@@ -1,12 +1,14 @@
-import { Dwg } from "../sdk.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
 import { dim, output } from "../utils/output.js";
-import { handleCommandError, parseLimit } from "./shared.js";
+import {
+  type DrawingCommandOptions,
+  drawingFor,
+  handleCommandError,
+  parseLimit,
+} from "./shared.js";
 
 export async function entities(
   file: string,
-  options: OutputOptions & { reader?: DrawingReader; toolDir?: string } & {
+  options: DrawingCommandOptions & {
     type?: string;
     layer?: string;
     limit?: string;
@@ -14,10 +16,7 @@ export async function entities(
   },
 ): Promise<void> {
   try {
-    const items = await Dwg.open(file, {
-      reader: options.reader,
-      toolDir: options.toolDir,
-    }).entities({
+    const items = await drawingFor(file, options).entities({
       type: options.type,
       layer: options.layer,
       limit: parseLimit(options.limit),

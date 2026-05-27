@@ -1,18 +1,16 @@
-import { Dwg } from "../sdk.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
 import { bold, dim, output } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import {
+  type DrawingCommandOptions,
+  drawingFor,
+  handleCommandError,
+} from "./shared.js";
 
 export async function info(
   file: string,
-  options: OutputOptions & { reader?: DrawingReader; toolDir?: string },
+  options: DrawingCommandOptions,
 ): Promise<void> {
   try {
-    const summary = await Dwg.open(file, {
-      reader: options.reader,
-      toolDir: options.toolDir,
-    }).info();
+    const summary = await drawingFor(file, options).info();
     output(options, {
       json: () => summary,
       human: () => {

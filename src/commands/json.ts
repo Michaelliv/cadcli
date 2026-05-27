@@ -1,17 +1,15 @@
 import { toJson } from "../core/drawing.js";
-import { writeOutput } from "../core/files.js";
-import type { DrawingReader } from "../types.js";
-import type { OutputOptions } from "../utils/output.js";
-import { output, stringifyJson, success } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import { stringifyJson } from "../utils/output.js";
+import {
+  type DrawingCommandOptions,
+  handleCommandError,
+  type OutputFileOptions,
+  writeCommandOutput,
+} from "./shared.js";
 
 export async function json(
   file: string,
-  options: OutputOptions & {
-    output?: string;
-    reader?: DrawingReader;
-    toolDir?: string;
-  },
+  options: DrawingCommandOptions & OutputFileOptions,
 ): Promise<void> {
   try {
     const doc = await toJson(file, {
@@ -20,14 +18,15 @@ export async function json(
     });
     const content = `${stringifyJson(doc)}\n`;
     if (options.output) {
-      writeOutput(options.output, content);
-      output(options, {
-        json: () => ({ success: true, file: options.output }),
-        human: () => success(`Wrote ${options.output}`),
-      });
-    } else {
-      console.log(content.trimEnd());
+      writeCommandOutput(
+        options,
+        content,
+        () => ({ success: true, file: options.output }),
+        `Wrote ${options.output}`,
+      );
+      return;
     }
+    console.log(content.trimEnd());
   } catch (err) {
     handleCommandError(err);
   }

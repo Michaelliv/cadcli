@@ -1,8 +1,6 @@
-import { writeOutput } from "../core/files.js";
 import { renderSvgWithLibreDwg } from "../core/libredwg.js";
 import type { OutputOptions } from "../utils/output.js";
-import { output, success } from "../utils/output.js";
-import { handleCommandError } from "./shared.js";
+import { handleCommandError, writeCommandOutput } from "./shared.js";
 
 export interface ViewOptions extends OutputOptions {
   output?: string;
@@ -16,16 +14,17 @@ export async function view(file: string, options: ViewOptions): Promise<void> {
     const tool = result.tool;
 
     if (options.output) {
-      writeOutput(options.output, svg);
-      output(options, {
-        json: () => ({
+      writeCommandOutput(
+        options,
+        svg,
+        () => ({
           success: true,
           file: options.output,
           backend: "LibreDWG",
           tool,
         }),
-        human: () => success(`Wrote ${options.output} with ${tool}`),
-      });
+        `Wrote ${options.output} with ${tool}`,
+      );
       return;
     }
     if (options.json) {
