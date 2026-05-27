@@ -223,10 +223,10 @@ describe("commands", () => {
     resetOutput();
     await view(file, {
       parser,
-      output: join(dir, "fallback.svg"),
+      output: join(dir, "libredwg-web.svg"),
       toolDir: join(dir, "empty-bin"),
     });
-    expect(stdout).toContain("libredwg-web+internal-svg");
+    expect(stdout).toContain("libredwg-web-renderer");
   });
 
   test("view writes SVG to stdout in human mode", async () => {

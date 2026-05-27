@@ -16,9 +16,9 @@ export interface LibreDwgTool {
 
 export interface LibreDwgStatus {
   backend: "LibreDWG";
-  mode: "native+wasm";
+  mode: "libredwg-native+libredwg-web";
   tools: LibreDwgTool[];
-  viewing: "native dwgread when available; wasm/internal fallback otherwise";
+  viewing: "LibreDWG dwgread when available; libredwg-web renderer otherwise";
   editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite when available";
 }
 
@@ -65,12 +65,12 @@ function which(tool: string, toolDir?: string): string | undefined {
 export function getLibreDwgStatus(toolDir?: string): LibreDwgStatus {
   return {
     backend: "LibreDWG",
-    mode: "native+wasm",
+    mode: "libredwg-native+libredwg-web",
     tools: TOOLS.map((name) => {
       const path = which(name, toolDir);
       return { name, available: Boolean(path), ...(path ? { path } : {}) };
     }),
-    viewing: "native dwgread when available; wasm/internal fallback otherwise",
+    viewing: "LibreDWG dwgread when available; libredwg-web renderer otherwise",
     editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite when available",
   };
 }

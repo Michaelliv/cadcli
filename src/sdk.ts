@@ -99,7 +99,7 @@ export class Dwg {
     return new Dwg(file, opts);
   }
 
-  static withParser(parser: DwgParser, file: string): Dwg {
+  static withLibreDwgParser(parser: DwgParser, file: string): Dwg {
     return new Dwg(file, { parser });
   }
 

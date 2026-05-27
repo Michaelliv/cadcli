@@ -1,5 +1,4 @@
 export { LibredwgParser } from "./core/adapter.js";
-export type { LoadOptions } from "./core/drawing.js";
 export {
   getBlocks,
   getEntities,
@@ -32,7 +31,6 @@ export type {
   DwgEntity,
   DwgFormat,
   DwgLayer,
-  DwgParser,
   DwgSummary,
   EntityFilter,
   SvgResult,

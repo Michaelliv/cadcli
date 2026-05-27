@@ -29,7 +29,7 @@ export async function view(file: string, options: ViewOptions): Promise<void> {
         throw err;
       const fallback = await toSvg(file, { parser: options.parser });
       svg = fallback.svg;
-      tool = "libredwg-web+internal-svg";
+      tool = "libredwg-web-renderer";
     }
 
     if (options.output) {

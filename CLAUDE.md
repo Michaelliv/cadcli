@@ -27,7 +27,7 @@ All TypeScript imports use `.js` extensions. The npm CLI entry uses `#!/usr/bin/
 
 ## LibreDWG backend
 
-Use native LibreDWG tools for features that require CAD-kernel file output: `dwgread` for viewing/SVG, `dwgfilter` for jq-backed edits, and `dwgadd`/`dwgwrite`/`dwgrewrite` for create/rewrite workflows. The WebAssembly parser from `@mlightcad/libredwg-web` remains the Node-readable LibreDWG path for inspection/search.
+Use LibreDWG only. Native LibreDWG tools handle file-output workflows: `dwgread` for viewing/SVG, `dwgfilter` for jq-backed edits, and `dwgadd`/`dwgwrite`/`dwgrewrite` for create/rewrite workflows. The WebAssembly package `@mlightcad/libredwg-web` is the Node-readable LibreDWG path for inspection/search.
 
 ## Adding a new command
 

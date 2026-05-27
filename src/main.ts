@@ -55,7 +55,7 @@ Viewing and editing:
 
 Conversion:
   json <file>          Export normalized JSON
-  svg <file>           Render best-effort SVG fallback
+  svg <file>           Render best-effort SVG with libredwg-web
   thumbnail <file>     Extract embedded thumbnail when available
 
 Options:

@@ -28,7 +28,7 @@ describe("LibreDWG backend", () => {
     const dwgread = addTool("dwgread", "echo svg");
     const status = getLibreDwgStatus(binDir);
     expect(status.backend).toBe("LibreDWG");
-    expect(status.mode).toBe("native+wasm");
+    expect(status.mode).toBe("libredwg-native+libredwg-web");
     expect(status.tools.map((tool) => tool.name)).toContain("dwgfilter");
     expect(status.tools.find((tool) => tool.name === "dwgread")).toEqual({
       name: "dwgread",
