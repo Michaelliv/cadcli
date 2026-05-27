@@ -6,7 +6,7 @@ Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.
 npm install -g cadcli
 ```
 
-Requires native CAD tools on your `PATH`: `dwgread` for inspection/viewing and `dwgfilter` for editing.
+Common inspection/search commands use a pure TypeScript parser by default. Native LibreDWG tools are only needed for high-fidelity `view` and jq-backed `edit`.
 
 ## Why cadcli
 
@@ -123,7 +123,9 @@ Set `CADCLI_CACHE_DIR` to override this location.
 
 ## Requirements
 
-`cadcli` uses native LibreDWG tools under the hood. Install `dwgread` for read/view workflows and `dwgfilter` for edits.
+Inspection, overview, layers, blocks, entities, search, JSON, and lightweight SVG export work through the default pure TypeScript parser.
+
+Install native LibreDWG tools for advanced workflows: `dwgread` for high-fidelity `view`, and `dwgfilter` for edits.
 
 ## License
 

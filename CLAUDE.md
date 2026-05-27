@@ -1,7 +1,7 @@
 # cadcli
 
 <mental>
-LibreDWG is the application backend. Prefer SDK-first architecture: core domain logic returns typed data, commands only adapt CLI options and format output. Keep expected user errors friendly and machine output parseable.
+acad-ts is the default parser for DWG/DXF inspection and search. Native LibreDWG tools are optional boundaries for high-fidelity viewing and jq-backed editing. Prefer SDK-first architecture: core domain logic returns typed data, commands only adapt CLI options and format output. Keep expected user errors friendly and machine output parseable.
 </mental>
 
 ## Commands
@@ -17,7 +17,7 @@ bunx biome format --write src/
 
 ## Architecture
 
-`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, LibreDWG adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
+`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, parser adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
 
 ## Key patterns
 
@@ -25,9 +25,9 @@ All TypeScript imports use `.js` extensions. The npm CLI entry uses `#!/usr/bin/
 
 Search indexes are cached automatically in the platform-standard cache directory. Use `CADCLI_CACHE_DIR` to override it during tests or one-off runs.
 
-## LibreDWG backend
+## Parser and native tools
 
-Use native LibreDWG only. `dwgread` is required for inspection/search/JSON/SVG/viewing. `dwgfilter` handles jq-backed edits, and `dwgadd`/`dwgwrite`/`dwgrewrite` are the create/rewrite path.
+Use `AcadTsReader` as the default reader for inspection/search/overview/JSON/SVG. Keep `NativeLibreDwgReader` available for explicit native parsing boundaries and tests. Native LibreDWG tools remain optional advanced paths: `dwgread` powers high-fidelity `view`, and `dwgfilter` handles jq-backed edits.
 
 ## Adding a new command
 

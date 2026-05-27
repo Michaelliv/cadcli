@@ -1,7 +1,7 @@
 {
   "name": "cadcli",
   "version": "0.1.0",
-  "description": "CAD inspection, viewing, and editing tools backed by LibreDWG.",
+  "description": "Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
