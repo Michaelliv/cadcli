@@ -1,0 +1,24 @@
+# Compiled binaries
+dwg
+dwg-*
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Build output
+dist
+
+# Bun
+bun.lockb
+bun.lock
+
+# dotenv
+.env
+.env.local
+.env.*.local
