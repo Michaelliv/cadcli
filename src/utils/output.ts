@@ -14,8 +14,16 @@ export const dim = (s: string) => chalk.dim(s);
 export const cmd = (s: string) => chalk.cyan(s);
 export const hint = (msg: string) => console.log(chalk.dim(`  ${msg}`));
 
+export function stringifyJson(data: unknown): string {
+  return JSON.stringify(
+    data,
+    (_key, value) => (typeof value === "bigint" ? value.toString() : value),
+    2,
+  );
+}
+
 export function jsonOutput(data: unknown): void {
-  console.log(JSON.stringify(data, null, 2));
+  console.log(stringifyJson(data));
 }
 
 export function output(
