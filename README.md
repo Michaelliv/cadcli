@@ -10,7 +10,6 @@ npm install -g cadcli
 
 ```bash
 cadcli init
-cadcli backend
 cadcli info drawing.dwg
 cadcli layers drawing.dwg --json
 cadcli entities drawing.dwg --type LINE --limit 20
@@ -24,8 +23,6 @@ Workflow: **info → search/entities → view/edit**.
 ## Commands
 
 - `cadcli init` — create `.cadcli/` config/cache directory.
-- `cadcli onboard` — add agent instructions to `CLAUDE.md` or `AGENTS.md`.
-- `cadcli backend` — show LibreDWG native tool availability.
 - `cadcli info <file>` — metadata, version, counts, layers, blocks, bounds.
 - `cadcli layers <file>` — list layers and entity counts.
 - `cadcli blocks <file>` — list blocks.
@@ -58,7 +55,7 @@ The SDK exports `Dwg`, LibreDWG helpers, core helpers, and consumer-facing types
 
 ## For agents
 
-Run `cadcli onboard` in a repository to add durable instructions. Agents should prefer `--json` and treat stdout as primary data; diagnostics and errors are written to stderr.
+Agents should prefer `--json` and treat stdout as primary data; diagnostics and errors are written to stderr.
 
 ## License
 

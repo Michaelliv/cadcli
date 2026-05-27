@@ -11,9 +11,7 @@ import {
 } from "./core/drawing.js";
 import {
   editWithLibreDwgFilter,
-  getLibreDwgStatus,
   type LibreDwgEditResult,
-  type LibreDwgStatus,
   type LibreDwgViewResult,
   renderSvgWithLibreDwg,
 } from "./core/libredwg.js";
@@ -101,9 +99,5 @@ export class Dwg {
 
   static withLibreDwgParser(parser: DwgParser, file: string): Dwg {
     return new Dwg(file, { parser });
-  }
-
-  static backend(): LibreDwgStatus {
-    return getLibreDwgStatus();
   }
 }

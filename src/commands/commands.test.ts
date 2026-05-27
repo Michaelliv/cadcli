@@ -8,7 +8,6 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import type { DwgParser } from "../types.js";
-import { backend } from "./backend.js";
 import { blocks } from "./blocks.js";
 import { edit } from "./edit.js";
 import { entities } from "./entities.js";
@@ -16,7 +15,6 @@ import { info } from "./info.js";
 import { init } from "./init.js";
 import { json } from "./json.js";
 import { layers } from "./layers.js";
-import { onboard } from "./onboard.js";
 import { search } from "./search.js";
 import { svg } from "./svg.js";
 import { thumbnail } from "./thumbnail.js";
@@ -105,35 +103,6 @@ describe("commands", () => {
     await init({ cwd: dir });
     expect(stdout).toContain("Already initialized .cadcli/");
     expect(existsSync(join(dir, ".cadcli", "config.json"))).toBe(true);
-  });
-
-  test("onboard is idempotent and prefers CLAUDE.md", async () => {
-    const freshDir = join(dir, "fresh-onboard");
-    mkdirSync(freshDir, { recursive: true });
-    await onboard({ cwd: freshDir });
-    expect(stdout).toContain("Added cadcli instructions");
-    resetOutput();
-    await onboard({ cwd: dir, json: true });
-    expect(readFileSync(join(dir, "CLAUDE.md"), "utf-8")).toContain("<cadcli>");
-    resetOutput();
-    await onboard({ cwd: dir });
-    expect(stdout).toContain("Already onboarded");
-    resetOutput();
-    await onboard({ cwd: dir, json: true });
-    expect(JSON.parse(stdout).message).toBe("already_onboarded");
-  });
-
-  test("backend reports LibreDWG as the main backend", async () => {
-    await backend({ json: true, toolDir: join(dir, "bin") });
-    const parsed = JSON.parse(stdout);
-    expect(parsed.backend).toBe("LibreDWG");
-    expect(
-      parsed.tools.some((tool: { name: string }) => tool.name === "dwgread"),
-    ).toBe(true);
-    resetOutput();
-    await backend({ toolDir: join(dir, "bin") });
-    expect(stdout).toContain("LibreDWG");
-    expect(stdout).toContain("dwgread");
   });
 
   test("info, layers, blocks, and entities support json output", async () => {

@@ -23,7 +23,7 @@ bunx biome format --write src/
 
 All TypeScript imports use `.js` extensions. The npm CLI entry uses `#!/usr/bin/env node`, not Bun. Human output is concise, JSON output is stable, and diagnostics go to stderr. Every command follows the output triple: human, `--json`, and `--quiet` where relevant. Exit codes live in `src/utils/exit-codes.ts`.
 
-`.cadcli/` is git-native local project state for config/cache. `init` creates it idempotently. `onboard` appends an idempotent `<cadcli>` block to `CLAUDE.md` or `AGENTS.md`.
+`.cadcli/` is git-native local project state for config/cache. `init` creates it idempotently.
 
 ## LibreDWG backend
 

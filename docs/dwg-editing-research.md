@@ -43,7 +43,6 @@ Agents should still avoid mutating binary DWG blindly. The safe editing contract
 - `cadcli svg <file>` — best-effort SVG from normalized libredwg-web data.
 - `cadcli view <file>` — native `dwgread -O SVG` when available; libredwg-web renderer otherwise.
 - `cadcli edit <file> --jq <expr>` — native `dwgfilter`.
-- `cadcli backend` — LibreDWG capability report for native tools and embedded libredwg-web.
 
 ## Next implementation step
 

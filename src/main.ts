@@ -3,7 +3,6 @@
 import { createRequire } from "node:module";
 import chalk from "chalk";
 import { Command } from "commander";
-import { backend } from "./commands/backend.js";
 import { blocks } from "./commands/blocks.js";
 import { edit } from "./commands/edit.js";
 import { entities } from "./commands/entities.js";
@@ -11,7 +10,6 @@ import { info } from "./commands/info.js";
 import { init } from "./commands/init.js";
 import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
-import { onboard } from "./commands/onboard.js";
 import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
@@ -39,8 +37,6 @@ Workflow: info → search/entities → view/edit
 
 Getting started:
   init                 Create .cadcli/ config/cache directory
-  onboard              Add agent instructions to CLAUDE.md or AGENTS.md
-  backend              Show LibreDWG backend/tool availability
 
 Inspecting:
   info <file>          Drawing metadata and counts
@@ -90,14 +86,6 @@ program
   .command("init")
   .description("Create .cadcli/ in current directory")
   .action(async (_opts, cmd) => init(cmd.optsWithGlobals()));
-program
-  .command("onboard")
-  .description("Add cadcli instructions to CLAUDE.md or AGENTS.md")
-  .action(async (_opts, cmd) => onboard(cmd.optsWithGlobals()));
-program
-  .command("backend")
-  .description("Show LibreDWG backend and native tool availability")
-  .action(async (_opts, cmd) => backend(cmd.optsWithGlobals()));
 program
   .command("info <file>")
   .description("Show drawing metadata and summary")

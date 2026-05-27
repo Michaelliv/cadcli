@@ -11,13 +11,10 @@ export {
 } from "./core/drawing.js";
 export type {
   LibreDwgEditResult,
-  LibreDwgStatus,
-  LibreDwgTool,
   LibreDwgViewResult,
 } from "./core/libredwg.js";
 export {
   editWithLibreDwgFilter,
-  getLibreDwgStatus,
   renderSvgWithLibreDwg,
 } from "./core/libredwg.js";
 export type { DwgSearchOptions, DwgSearchResult } from "./core/search.js";

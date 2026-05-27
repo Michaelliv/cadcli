@@ -33,7 +33,6 @@ describe("SDK", () => {
     expect((await dwg.svg()).svg).toContain("<svg");
     expect((await dwg.thumbnail()).mimeType).toBe("image/png");
     expect(Dwg.open(file, { parser })).toBeInstanceOf(Dwg);
-    expect(Dwg.backend().backend).toBe("LibreDWG");
   });
 
   test("SDK exposes LibreDWG native view and edit methods", () => {
