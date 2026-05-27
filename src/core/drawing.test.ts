@@ -94,7 +94,7 @@ describe("drawing core", () => {
     expect(results[0].matches.length).toBeGreaterThan(0);
   });
 
-  test("search caches indexes in .dwg/cache when initialized", async () => {
+  test("search caches indexes in .cadcli/cache when initialized", async () => {
     initStore(dir);
     let parses = 0;
     const countingParser: DwgParser = {
@@ -114,7 +114,7 @@ describe("drawing core", () => {
       { parser: countingParser },
     );
     expect(parses).toBe(1);
-    expect(existsSync(join(dir, ".dwg", "cache"))).toBe(true);
+    expect(existsSync(join(dir, ".cadcli", "cache"))).toBe(true);
   });
 
   test("renders common entities to SVG and reports unsupported", async () => {

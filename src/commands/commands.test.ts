@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DwgParser } from "../types.js";
+import { backend } from "./backend.js";
 import { blocks } from "./blocks.js";
 import { entities } from "./entities.js";
 import { info } from "./info.js";
@@ -84,15 +85,24 @@ describe("commands", () => {
     resetOutput();
     await init({ cwd: dir, quiet: true });
     expect(stdout).toBe("");
-    expect(existsSync(join(dir, ".dwg", "config.json"))).toBe(true);
+    expect(existsSync(join(dir, ".cadcli", "config.json"))).toBe(true);
   });
 
   test("onboard is idempotent and prefers CLAUDE.md", async () => {
     await onboard({ cwd: dir, json: true });
-    expect(readFileSync(join(dir, "CLAUDE.md"), "utf-8")).toContain("<dwg>");
+    expect(readFileSync(join(dir, "CLAUDE.md"), "utf-8")).toContain("<cadcli>");
     resetOutput();
     await onboard({ cwd: dir, json: true });
     expect(JSON.parse(stdout).message).toBe("already_onboarded");
+  });
+
+  test("backend reports LibreDWG as the main backend", async () => {
+    await backend({ json: true });
+    const parsed = JSON.parse(stdout);
+    expect(parsed.backend).toBe("LibreDWG");
+    expect(
+      parsed.tools.some((tool: { name: string }) => tool.name === "dwgread"),
+    ).toBe(true);
   });
 
   test("info, layers, blocks, and entities support json output", async () => {

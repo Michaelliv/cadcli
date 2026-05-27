@@ -10,6 +10,14 @@ import {
   toSvg,
 } from "./core/drawing.js";
 import {
+  editWithLibreDwgFilter,
+  getLibreDwgStatus,
+  type LibreDwgEditResult,
+  type LibreDwgStatus,
+  type LibreDwgViewResult,
+  renderSvgWithLibreDwg,
+} from "./core/libredwg.js";
+import {
   type DwgSearchOptions,
   type DwgSearchResult,
   searchDrawing,
@@ -64,6 +72,23 @@ export class Dwg {
     return toSvg(this.file, this.opts);
   }
 
+  view(): LibreDwgViewResult {
+    return renderSvgWithLibreDwg(this.file);
+  }
+
+  edit(opts: {
+    output: string;
+    expression: string;
+    overwrite?: boolean;
+  }): LibreDwgEditResult {
+    return editWithLibreDwgFilter({
+      input: this.file,
+      output: opts.output,
+      expression: opts.expression,
+      overwrite: opts.overwrite,
+    });
+  }
+
   thumbnail(): Promise<ThumbnailResult> {
     return getThumbnail(this.file, this.opts);
   }
@@ -74,5 +99,9 @@ export class Dwg {
 
   static withParser(parser: DwgParser, file: string): Dwg {
     return new Dwg(file, { parser });
+  }
+
+  static backend(): LibreDwgStatus {
+    return getLibreDwgStatus();
   }
 }

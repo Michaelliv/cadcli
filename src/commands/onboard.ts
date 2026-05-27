@@ -4,27 +4,30 @@ import type { OutputOptions } from "../utils/output.js";
 import { output, success } from "../utils/output.js";
 
 const INSTRUCTIONS = `
-<dwg>
-Use \`dwg\` for DWG/DXF inspection and conversion. Prefer \`dwg --json ...\` for structured output that agents can parse.
+<cadcli>
+Use \`cadcli\` for CAD/DWG/DXF inspection, viewing, and LibreDWG-backed editing. Prefer \`cadcli --json ...\` for structured output that agents can parse.
 
 <commands>
-- \`dwg info <file> --json\` - summarize format, version, counts, layers, blocks, and bounds
-- \`dwg layers <file> --json\` - list layers and entity counts
-- \`dwg entities <file> --json --type LINE --layer 0\` - inspect/filter entities
-- \`dwg search <file> "text or block" --json --layer A-TEXT\` - search IDs, types, layers, text, block names, and raw fields
-- \`dwg json <file> -o drawing.json\` - export normalized JSON
-- \`dwg svg <file> -o drawing.svg\` - render best-effort SVG
+- \`cadcli backend --json\` - inspect LibreDWG native tool availability
+- \`cadcli info <file> --json\` - summarize format, version, counts, layers, blocks, and bounds
+- \`cadcli layers <file> --json\` - list layers and entity counts
+- \`cadcli entities <file> --json --type LINE --layer 0\` - inspect/filter entities
+- \`cadcli search <file> "text or block" --json --layer A-TEXT\` - search IDs, types, layers, text, block names, and raw fields
+- \`cadcli view <file> -o drawing.svg\` - render SVG with native LibreDWG dwgread
+- \`cadcli edit <file> --jq <expression> -o edited.dwg\` - edit through native LibreDWG dwgfilter
+- \`cadcli json <file> -o drawing.json\` - export normalized JSON
 </commands>
 
 <rules>
 - ALWAYS use \`--json\` when another tool or agent needs to parse output.
 - Diagnostics and errors are on stderr; primary data is on stdout.
-- Project config/cache lives in \`.dwg/\` and can be committed when useful.
+- Project config/cache lives in \`.cadcli/\` and can be committed when useful.
+- Prefer \`cadcli edit ... -o <new-file>\` over in-place edits unless explicitly asked to overwrite.
 </rules>
-</dwg>
+</cadcli>
 `.trim();
 
-const MARKER = "<dwg>";
+const MARKER = "<cadcli>";
 
 export async function onboard(
   options: OutputOptions & { cwd?: string },
@@ -61,6 +64,6 @@ export async function onboard(
   );
   output(options, {
     json: () => ({ success: true, file: targetFile }),
-    human: () => success(`Added dwg instructions to ${targetFile}`),
+    human: () => success(`Added cadcli instructions to ${targetFile}`),
   });
 }

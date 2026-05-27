@@ -11,11 +11,11 @@ export async function init(
     human: () => {
       success(
         result.created
-          ? `Initialized .dwg/ in ${options.cwd ?? process.cwd()}`
-          : `Already initialized .dwg/ in ${options.cwd ?? process.cwd()}`,
+          ? `Initialized .cadcli/ in ${options.cwd ?? process.cwd()}`
+          : `Already initialized .cadcli/ in ${options.cwd ?? process.cwd()}`,
       );
       hint("Next: inspect a drawing");
-      console.log(`  ${cmd("dwg info drawing.dwg")}`);
+      console.log(`  ${cmd("cadcli info drawing.dwg")}`);
     },
   });
 }

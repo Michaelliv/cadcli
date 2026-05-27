@@ -1,6 +1,6 @@
 # DWG editing research
 
-Goal: determine what it would take for `dwgcli` to edit/create DWG files with the same level of fidelity a human CAD user expects.
+Goal: determine what it would take for `cadcli` to edit/create DWG files with the same level of fidelity a human CAD user expects.
 
 ## Verdict
 
@@ -27,23 +27,23 @@ The ezdxf ODA File Converter integration documents a local workflow where ODA Fi
 
 ## Recommended product architecture
 
-Keep `dwgcli` as the agent-facing control plane and add pluggable edit backends. Agents should never directly mutate binary DWG. They should produce a typed patch, validate it, preview/diff it, then apply through a backend.
+Keep `cadcli` as the agent-facing control plane and add pluggable edit backends. Agents should never directly mutate binary DWG. They should produce a typed patch, validate it, preview/diff it, then apply through a backend.
 
 ```txt
 DWG/DXF file
   ↓
-dwg inspect/search → normalized model
+cadcli inspect/search → normalized model
   ↓
-dwg patch create/edit JSON patch
+cadcli patch create/edit JSON patch
   ↓
-dwg patch validate + dry-run + preview SVG/PDF
+cadcli patch validate + dry-run + preview SVG/PDF
   ↓
-dwg apply --backend <autocad|oda|dxf|libredwg>
+cadcli apply --backend <autocad|oda|dxf|libredwg>
   ↓
 new DWG/DXF + audit report
 ```
 
-The patch format should cover CAD-level actions rather than raw binary edits: create entity, delete entity, move/rotate/scale entity, set layer, rename layer, change text, change block attributes, insert block, create layer, update title block, purge unused layers/blocks, and batch operations over `dwg search` results.
+The patch format should cover CAD-level actions rather than raw binary edits: create entity, delete entity, move/rotate/scale entity, set layer, rename layer, change text, change block attributes, insert block, create layer, update title block, purge unused layers/blocks, and batch operations over `cadcli search` results.
 
 ## Backend tradeoffs
 
@@ -55,15 +55,15 @@ The patch format should cover CAD-level actions rather than raw binary edits: cr
 
 **LibreDWG native tools/custom WASM** is the open-source path. It is useful for research and some transformations (`dwgfilter`, `dwgadd`) but not reliable enough as the sole human-grade editing backend for modern production DWGs.
 
-## Next implementation step for dwgcli
+## Next implementation step for cadcli
 
 Add an explicit patch layer first:
 
-- `dwg patch create <file> --set-text <handle> <text>`
-- `dwg patch create <file> --set-layer <query> <layer>`
-- `dwg patch validate patch.json`
-- `dwg patch preview <file> patch.json -o preview.svg`
-- `dwg apply <file> patch.json --backend dxf --output out.dxf`
+- `cadcli patch create <file> --set-text <handle> <text>`
+- `cadcli patch create <file> --set-layer <query> <layer>`
+- `cadcli patch validate patch.json`
+- `cadcli patch preview <file> patch.json -o preview.svg`
+- `cadcli apply <file> patch.json --backend dxf --output out.dxf`
 - later: `--backend autocad`, `--backend oda`, `--backend libredwg`
 
 This gives agents a safe editing contract immediately while leaving the actual write engine pluggable. For true parity with human CAD editing, prioritize an AutoCAD Automation backend or ODA Drawings/inWEB backend.

@@ -1,24 +1,26 @@
 {
-  "name": "dwgcli",
+  "name": "cadcli",
   "version": "0.1.0",
-  "description": "DWG/DXF inspection and conversion tools for the terminal and TypeScript.",
+  "description": "CAD inspection, viewing, and editing tools backed by LibreDWG.",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js"
   },
   "bin": {
-    "dwg": "./dist/main.js"
+    "cadcli": "./dist/main.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "dev": "bun run src/main.ts",
-    "build:bun": "bun build --compile src/main.ts --outfile dwg",
-    "build:bun-linux": "bun build --compile --target=bun-linux-x64 src/main.ts --outfile dwg-linux-x64",
-    "build:bun-mac-arm": "bun build --compile --target=bun-darwin-arm64 src/main.ts --outfile dwg-darwin-arm64",
-    "build:bun-mac-x64": "bun build --compile --target=bun-darwin-x64 src/main.ts --outfile dwg-darwin-x64",
+    "build:bun": "bun build --compile src/main.ts --outfile cadcli",
+    "build:bun-linux": "bun build --compile --target=bun-linux-x64 src/main.ts --outfile cadcli-linux-x64",
+    "build:bun-mac-arm": "bun build --compile --target=bun-darwin-arm64 src/main.ts --outfile cadcli-darwin-arm64",
+    "build:bun-mac-x64": "bun build --compile --target=bun-darwin-x64 src/main.ts --outfile cadcli-darwin-x64",
     "test": "bun test",
     "format": "bunx biome format --write src/",
     "lint": "bunx biome lint src/",
@@ -26,13 +28,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Michaelliv/dwgcli.git"
+    "url": "git+https://github.com/Michaelliv/cadcli.git"
   },
-  "homepage": "https://github.com/Michaelliv/dwgcli#readme",
+  "homepage": "https://github.com/Michaelliv/cadcli#readme",
   "bugs": {
-    "url": "https://github.com/Michaelliv/dwgcli/issues"
+    "url": "https://github.com/Michaelliv/cadcli/issues"
   },
-  "keywords": ["dwg", "dxf", "cad", "cli", "sdk", "libredwg", "svg", "conversion"],
+  "keywords": [
+    "dwg",
+    "dxf",
+    "cad",
+    "cli",
+    "sdk",
+    "libredwg",
+    "svg",
+    "conversion"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",

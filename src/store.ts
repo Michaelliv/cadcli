@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const DATA_DIR = ".dwg";
+const DATA_DIR = ".cadcli";
 
 export interface DwgConfig {
   created: string;

@@ -3,7 +3,9 @@
 import { createRequire } from "node:module";
 import chalk from "chalk";
 import { Command } from "commander";
+import { backend } from "./commands/backend.js";
 import { blocks } from "./commands/blocks.js";
+import { edit } from "./commands/edit.js";
 import { entities } from "./commands/entities.js";
 import { info } from "./commands/info.js";
 import { init } from "./commands/init.js";
@@ -13,6 +15,7 @@ import { onboard } from "./commands/onboard.js";
 import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
+import { view } from "./commands/view.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -20,23 +23,24 @@ const { version } = require("../package.json");
 const program = new Command();
 
 function showHelp() {
-  console.log(`Usage: dwg [options] [command]
+  console.log(`Usage: cadcli [options] [command]
 
-DWG/DXF inspection and conversion tools for the terminal and TypeScript.
+CAD inspection, viewing, and editing tools backed by LibreDWG.
 
 Examples:
-  $ dwg info drawing.dwg              Summarize a drawing
-  $ dwg layers drawing.dwg --json     List layers for scripts/agents
-  $ dwg entities drawing.dwg --type LINE --limit 20
-  $ dwg search drawing.dwg "conference" --layer A-TEXT
-  $ dwg json drawing.dwg -o drawing.json
-  $ dwg svg drawing.dwg -o drawing.svg
+  $ cadcli info drawing.dwg              Summarize a drawing
+  $ cadcli layers drawing.dwg --json     List layers for scripts/agents
+  $ cadcli entities drawing.dwg --type LINE --limit 20
+  $ cadcli search drawing.dwg "conference" --layer A-TEXT
+  $ cadcli view drawing.dwg -o drawing.svg
+  $ cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
 
-Workflow: info → layers/entities → json/svg
+Workflow: info → search/entities → view/edit
 
 Getting started:
-  init                 Create .dwg/ config/cache directory
+  init                 Create .cadcli/ config/cache directory
   onboard              Add agent instructions to CLAUDE.md or AGENTS.md
+  backend              Show LibreDWG backend/tool availability
 
 Inspecting:
   info <file>          Drawing metadata and counts
@@ -45,9 +49,13 @@ Inspecting:
   entities <file>      List/filter entities
   search <file>        Search entities by text, type, layer, and raw fields
 
+Viewing and editing:
+  view <file>          Render SVG with native LibreDWG dwgread
+  edit <file>          Edit with native LibreDWG dwgfilter
+
 Conversion:
   json <file>          Export normalized JSON
-  svg <file>           Render best-effort SVG
+  svg <file>           Render best-effort SVG fallback
   thumbnail <file>     Extract embedded thumbnail when available
 
 Options:
@@ -57,15 +65,13 @@ Options:
   -v, --version        Show version
   -h, --help           Show this help
 
-Docs: https://github.com/Michaelliv/dwgcli`);
+Docs: https://github.com/Michaelliv/cadcli`);
 }
 
 program
-  .name("dwg")
-  .description(
-    "DWG/DXF inspection and conversion tools for the terminal and TypeScript.",
-  )
-  .version(`dwg ${version}`, "-v, --version")
+  .name("cadcli")
+  .description("CAD inspection, viewing, and editing tools backed by LibreDWG.")
+  .version(`cadcli ${version}`, "-v, --version")
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Suppress output")
   .option("--no-color", "Disable color")
@@ -82,12 +88,16 @@ program.hook("preAction", (cmd) => {
 
 program
   .command("init")
-  .description("Create .dwg/ in current directory")
+  .description("Create .cadcli/ in current directory")
   .action(async (_opts, cmd) => init(cmd.optsWithGlobals()));
 program
   .command("onboard")
-  .description("Add dwg instructions to CLAUDE.md or AGENTS.md")
+  .description("Add cadcli instructions to CLAUDE.md or AGENTS.md")
   .action(async (_opts, cmd) => onboard(cmd.optsWithGlobals()));
+program
+  .command("backend")
+  .description("Show LibreDWG backend and native tool availability")
+  .action(async (_opts, cmd) => backend(cmd.optsWithGlobals()));
 program
   .command("info <file>")
   .description("Show drawing metadata and summary")
@@ -132,6 +142,25 @@ program
     await search(file, root);
   });
 
+program
+  .command("view <file>")
+  .description("Render SVG with native LibreDWG dwgread")
+  .option("-o, --output <path>", "Output SVG file")
+  .action(async (file, opts, cmd) =>
+    view(file, { ...cmd.optsWithGlobals(), ...opts }),
+  );
+program
+  .command("edit <file>")
+  .description("Edit DWG/DXF with native LibreDWG dwgfilter")
+  .requiredOption("--jq <expression>", "dwgfilter jq expression")
+  .option(
+    "-o, --output <path>",
+    "Output file; defaults to input with --overwrite",
+  )
+  .option("--overwrite", "Allow editing the input file in place")
+  .action(async (file, opts, cmd) =>
+    edit(file, { ...cmd.optsWithGlobals(), ...opts }),
+  );
 program
   .command("json <file>")
   .description("Export normalized JSON")

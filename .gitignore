@@ -1,6 +1,6 @@
 # Compiled binaries
-dwg
-dwg-*
+cadcli
+cadcli-*
 
 # Logs
 *.log
