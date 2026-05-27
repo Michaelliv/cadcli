@@ -1,20 +1,33 @@
 import type { DwgBounds, DwgDocument, DwgEntity, SvgResult } from "../types.js";
 
-function rec(entity: DwgEntity): Record<string, unknown> {
+type Point = { x: number; y: number };
+type Renderer = (entity: DwgEntity) => string | null;
+
+const DEFAULT_BOUNDS: DwgBounds = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+
+function data(entity: DwgEntity): Record<string, unknown> {
   return entity.data;
 }
 
-function point(value: unknown): { x: number; y: number } | null {
-  const obj =
-    value && typeof value === "object"
-      ? (value as Record<string, unknown>)
-      : {};
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function point(value: unknown): Point | null {
+  const obj = record(value);
   const x = Number(obj.x ?? obj.X ?? obj[0]);
   const y = Number(obj.y ?? obj.Y ?? obj[1]);
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
-function esc(value: string): string {
+function number(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function escapeXml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -22,59 +35,88 @@ function esc(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-function fallbackBounds(): DwgBounds {
-  return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+function y(value: number): number {
+  return -value;
+}
+
+function renderLine(entity: DwgEntity): string | null {
+  const rec = data(entity);
+  const start = point(rec.start ?? rec.startPoint);
+  const end = point(rec.end ?? rec.endPoint);
+  if (!start || !end) return null;
+  return `<line x1="${start.x}" y1="${y(start.y)}" x2="${end.x}" y2="${y(end.y)}" />`;
+}
+
+function renderCircle(entity: DwgEntity): string | null {
+  const rec = data(entity);
+  const center = point(rec.center);
+  const radius = number(rec.radius ?? rec.r);
+  if (!center || radius === null) return null;
+  return `<circle cx="${center.x}" cy="${y(center.y)}" r="${radius}" />`;
+}
+
+function renderPolyline(entity: DwgEntity): string | null {
+  const vertices = Array.isArray(entity.data.vertices)
+    ? entity.data.vertices.map(point).filter((p): p is Point => p !== null)
+    : [];
+  if (vertices.length === 0) return null;
+  return `<polyline points="${vertices.map((p) => `${p.x},${y(p.y)}`).join(" ")}" />`;
+}
+
+function renderText(entity: DwgEntity): string | null {
+  const rec = data(entity);
+  const position = point(rec.position ?? rec.insertionPoint ?? rec.start);
+  if (!position) return null;
+  const text = escapeXml(String(rec.text ?? rec.value ?? ""));
+  return `<text x="${position.x}" y="${y(position.y)}">${text}</text>`;
+}
+
+const RENDERERS: Record<string, Renderer> = {
+  LINE: renderLine,
+  CIRCLE: renderCircle,
+  LWPOLYLINE: renderPolyline,
+  POLYLINE: renderPolyline,
+  TEXT: renderText,
+  MTEXT: renderText,
+};
+
+function rendererFor(entity: DwgEntity): Renderer | undefined {
+  return RENDERERS[entity.type];
+}
+
+function boundsFor(doc: DwgDocument): DwgBounds {
+  return doc.summary.bounds ?? DEFAULT_BOUNDS;
+}
+
+function viewBox(bounds: DwgBounds): string {
+  const width = Math.max(1, bounds.maxX - bounds.minX || DEFAULT_BOUNDS.maxX);
+  const height = Math.max(1, bounds.maxY - bounds.minY || DEFAULT_BOUNDS.maxY);
+  return `${bounds.minX} ${y(bounds.maxY)} ${width} ${height}`;
+}
+
+function metadata(unsupported: number, rendered: number): string {
+  return escapeXml(JSON.stringify({ unsupported, rendered }));
 }
 
 export function renderSvg(doc: DwgDocument): SvgResult {
-  const bounds = doc.summary.bounds ?? fallbackBounds();
-  const width = Math.max(1, bounds.maxX - bounds.minX || 100);
-  const height = Math.max(1, bounds.maxY - bounds.minY || 100);
+  const bounds = boundsFor(doc);
   const elements: string[] = [];
   let unsupported = 0;
 
   for (const entity of doc.entities) {
-    const data = rec(entity);
-    if (entity.type === "LINE") {
-      const start = point(data.start ?? data.startPoint);
-      const end = point(data.end ?? data.endPoint);
-      if (start && end)
-        elements.push(
-          `<line x1="${start.x}" y1="${-start.y}" x2="${end.x}" y2="${-end.y}" />`,
-        );
-      else unsupported++;
-    } else if (entity.type === "CIRCLE") {
-      const center = point(data.center);
-      const radius = Number(data.radius ?? data.r);
-      if (center && Number.isFinite(radius))
-        elements.push(
-          `<circle cx="${center.x}" cy="${-center.y}" r="${radius}" />`,
-        );
-      else unsupported++;
-    } else if (["LWPOLYLINE", "POLYLINE"].includes(entity.type)) {
-      const vertices = Array.isArray(data.vertices)
-        ? data.vertices.map(point).filter((p) => p !== null)
-        : [];
-      if (vertices.length)
-        elements.push(
-          `<polyline points="${vertices.map((p) => `${p.x},${-p.y}`).join(" ")}" />`,
-        );
-      else unsupported++;
-    } else if (["TEXT", "MTEXT"].includes(entity.type)) {
-      const position = point(
-        data.position ?? data.insertionPoint ?? data.start,
-      );
-      const text = String(data.text ?? data.value ?? "");
-      if (position)
-        elements.push(
-          `<text x="${position.x}" y="${-position.y}">${esc(text)}</text>`,
-        );
-      else unsupported++;
-    } else {
-      unsupported++;
-    }
+    const renderer = rendererFor(entity);
+    const element = renderer?.(entity) ?? null;
+    if (element) elements.push(element);
+    else unsupported++;
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bounds.minX} ${-bounds.maxY} ${width} ${height}">\n  <g fill="none" stroke="currentColor" stroke-width="1">\n    ${elements.join("\n    ")}\n  </g>\n  <metadata>{"unsupported":${unsupported},"rendered":${elements.length}}</metadata>\n</svg>\n`;
-  return { svg, unsupported, rendered: elements.length, bounds };
+  const rendered = elements.length;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox(bounds)}">
+  <g fill="none" stroke="currentColor" stroke-width="1">
+    ${elements.join("\n    ")}
+  </g>
+  <metadata>${metadata(unsupported, rendered)}</metadata>
+</svg>
+`;
+  return { svg, unsupported, rendered, bounds };
 }

@@ -235,6 +235,11 @@ describe("drawing core", () => {
         { id: "1", type: "LINE", data: {} },
         { id: "2", type: "CIRCLE", data: {} },
         {
+          id: "2b",
+          type: "CIRCLE",
+          data: { center: { x: 2, y: 3 }, radius: 4 },
+        },
+        {
           id: "3",
           type: "POLYLINE",
           data: {
@@ -255,6 +260,7 @@ describe("drawing core", () => {
       ],
     });
     expect(result.bounds).toEqual({ minX: 0, minY: 0, maxX: 100, maxY: 100 });
+    expect(result.svg).toContain("<circle");
     expect(result.svg).toContain("<polyline");
     expect(result.svg).toContain("A&amp;B&lt;&quot;");
     expect(result.unsupported).toBe(5);
