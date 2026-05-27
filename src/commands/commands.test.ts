@@ -9,6 +9,7 @@ import { init } from "./init.js";
 import { json } from "./json.js";
 import { layers } from "./layers.js";
 import { onboard } from "./onboard.js";
+import { search } from "./search.js";
 import { svg } from "./svg.js";
 import { thumbnail } from "./thumbnail.js";
 
@@ -106,6 +107,17 @@ describe("commands", () => {
     resetOutput();
     await entities(file, { json: true, parser, type: "LINE", total: true });
     expect(JSON.parse(stdout).total).toBe(1);
+  });
+
+  test("search supports json, scoring, snippets, and total", async () => {
+    await search(file, { parser, json: true, query: "line", score: true });
+    const parsed = JSON.parse(stdout);
+    expect(parsed.results[0].type).toBe("LINE");
+    expect(parsed.results[0].score).toBeGreaterThan(0);
+    expect(parsed.results[0].matches.length).toBeGreaterThan(0);
+    resetOutput();
+    await search(file, { parser, total: true, type: "LINE" });
+    expect(stdout.trim()).toBe("1");
   });
 
   test("human and total modes stay concise", async () => {

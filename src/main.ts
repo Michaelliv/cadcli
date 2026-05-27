@@ -10,6 +10,7 @@ import { init } from "./commands/init.js";
 import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
 import { onboard } from "./commands/onboard.js";
+import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
 
@@ -27,6 +28,7 @@ Examples:
   $ dwg info drawing.dwg              Summarize a drawing
   $ dwg layers drawing.dwg --json     List layers for scripts/agents
   $ dwg entities drawing.dwg --type LINE --limit 20
+  $ dwg search drawing.dwg "conference" --layer A-TEXT
   $ dwg json drawing.dwg -o drawing.json
   $ dwg svg drawing.dwg -o drawing.svg
 
@@ -41,6 +43,7 @@ Inspecting:
   layers <file>        List layers
   blocks <file>        List blocks
   entities <file>      List/filter entities
+  search <file>        Search entities by text, type, layer, and raw fields
 
 Conversion:
   json <file>          Export normalized JSON
@@ -113,6 +116,22 @@ program
   .action(async (file, opts, cmd) =>
     entities(file, { ...cmd.optsWithGlobals(), ...opts }),
   );
+program
+  .command("search <file> [query...]")
+  .description("Search entities by text, type, layer, and raw fields")
+  .option("--query <text>", "Search query")
+  .option("--type <name>", "Filter by entity type")
+  .option("--layer <name>", "Filter by layer")
+  .option("--limit <n>", "Limit results")
+  .option("--total", "Return result count")
+  .option("--score", "Include relevance scores")
+  .option("--no-snippets", "Omit matched snippets")
+  .action(async (file, queryWords, opts, cmd) => {
+    const root = { ...cmd.optsWithGlobals(), ...opts };
+    root.query = root.query || queryWords.join(" ");
+    await search(file, root);
+  });
+
 program
   .command("json <file>")
   .description("Export normalized JSON")

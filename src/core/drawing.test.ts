@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { initStore } from "../store.js";
 import type { DwgParser } from "../types.js";
 import { getEntities, getThumbnail, loadDrawing, toSvg } from "./drawing.js";
 import { DwgCliError } from "./errors.js";
+import { searchDrawing } from "./search.js";
 
 let dir = "";
 let file = "";
@@ -79,6 +81,40 @@ describe("drawing core", () => {
     await expect(
       getEntities(file, { type: "arc" }, { parser }),
     ).rejects.toThrow("Entity type not found");
+  });
+
+  test("searches entities with MiniSearch-style ranking and filters", async () => {
+    const results = await searchDrawing(
+      file,
+      { query: "circle", layer: "A-WALL", score: true },
+      { parser },
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0].entityId).toBe("11");
+    expect(results[0].matches.length).toBeGreaterThan(0);
+  });
+
+  test("search caches indexes in .dwg/cache when initialized", async () => {
+    initStore(dir);
+    let parses = 0;
+    const countingParser: DwgParser = {
+      async parse() {
+        parses++;
+        return raw;
+      },
+    };
+    await searchDrawing(
+      file,
+      { query: "circle", cwd: dir },
+      { parser: countingParser },
+    );
+    await searchDrawing(
+      file,
+      { query: "circle", cwd: dir },
+      { parser: countingParser },
+    );
+    expect(parses).toBe(1);
+    expect(existsSync(join(dir, ".dwg", "cache"))).toBe(true);
   });
 
   test("renders common entities to SVG and reports unsupported", async () => {

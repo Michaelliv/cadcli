@@ -17,7 +17,7 @@ bunx biome format --write src/
 
 ## Architecture
 
-`dwgcli` is both a CLI and SDK for DWG/DXF inspection and conversion. `src/core/*` owns file loading, libredwg adapter boundaries, normalization, filtering, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the public package surface. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
+`dwgcli` is both a CLI and SDK for DWG/DXF inspection and conversion. `src/core/*` owns file loading, libredwg adapter boundaries, normalization, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the public package surface. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
 
 ## Key patterns
 

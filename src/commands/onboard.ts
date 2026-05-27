@@ -11,6 +11,7 @@ Use \`dwg\` for DWG/DXF inspection and conversion. Prefer \`dwg --json ...\` for
 - \`dwg info <file> --json\` - summarize format, version, counts, layers, blocks, and bounds
 - \`dwg layers <file> --json\` - list layers and entity counts
 - \`dwg entities <file> --json --type LINE --layer 0\` - inspect/filter entities
+- \`dwg search <file> "text or block" --json --layer A-TEXT\` - search IDs, types, layers, text, block names, and raw fields
 - \`dwg json <file> -o drawing.json\` - export normalized JSON
 - \`dwg svg <file> -o drawing.svg\` - render best-effort SVG
 </commands>

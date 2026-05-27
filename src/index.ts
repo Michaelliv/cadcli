@@ -10,6 +10,8 @@ export {
   toJson,
   toSvg,
 } from "./core/drawing.js";
+export type { DwgSearchOptions, DwgSearchResult } from "./core/search.js";
+export { searchDrawing } from "./core/search.js";
 export { renderSvg } from "./core/svg.js";
 export { Dwg } from "./sdk.js";
 export type {

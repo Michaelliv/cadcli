@@ -9,6 +9,11 @@ import {
   toJson,
   toSvg,
 } from "./core/drawing.js";
+import {
+  type DwgSearchOptions,
+  type DwgSearchResult,
+  searchDrawing,
+} from "./core/search.js";
 import type {
   DwgBlock,
   DwgDocument,
@@ -45,6 +50,10 @@ export class Dwg {
 
   entities(filter?: EntityFilter): Promise<DwgEntity[]> {
     return getEntities(this.file, filter, this.opts);
+  }
+
+  search(opts?: DwgSearchOptions): Promise<DwgSearchResult[]> {
+    return searchDrawing(this.file, opts, this.opts);
   }
 
   json(): Promise<DwgDocument> {
