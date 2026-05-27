@@ -129,7 +129,7 @@ describe("drawing core", () => {
     ).rejects.toThrow("Entity type not found");
   });
 
-  test("searches entities with MiniSearch-style ranking and filters", async () => {
+  test("searches entities with ranking and filters", async () => {
     const results = await searchDrawing(
       file,
       { query: "circle", layer: "A-WALL", score: true },

@@ -18,7 +18,7 @@ bunx biome format --write src/
 
 ## Architecture
 
-`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, parser adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, MiniSearch-backed entity search, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers. `src/commands/*` are thin Commander adapters for output and errors. `src/main.ts` wires subcommands only.
+`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, parser adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, disk-backed SQLite entity search with scan fallback, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers.
 
 ## Key patterns
 

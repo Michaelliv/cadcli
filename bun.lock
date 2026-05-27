@@ -6,16 +6,17 @@
       "name": "@miclivs/cadcli",
       "dependencies": {
         "@node-projects/acad-ts": "2.3.0",
-        "better-sqlite3": "^12.10.0",
         "chalk": "^5.6.2",
         "commander": "^14.0.3",
-        "minisearch": "^7.2.0",
         "nanoid": "^5.1.6",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.3.14",
         "@types/bun": "latest",
         "typescript": "^5.8.0",
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.10.0",
       },
     },
   },
@@ -90,8 +91,6 @@
     "mimic-response": ["mimic-response@3.1.0", "", {}, "sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ=="],
 
     "minimist": ["minimist@1.2.8", "", {}, "sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA=="],
-
-    "minisearch": ["minisearch@7.2.0", "", {}, "sha512-dqT2XBYUOZOiC5t2HRnwADjhNS2cecp9u+TJRiJ1Qp/f5qjkeT5APcGPjHw+bz89Ms8Jp+cG4AlE+QZ/QnDglg=="],
 
     "mkdirp-classic": ["mkdirp-classic@0.5.3", "", {}, "sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A=="],
 

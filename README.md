@@ -111,7 +111,7 @@ The public SDK is intentionally small: `Dwg` plus stable CAD/result types. Nativ
 
 ## Cache
 
-Search indexes are cached automatically in the platform-standard cache directory. On Node.js installs, `cadcli search` uses a disk-backed SQLite FTS index when the optional SQLite dependency is available; otherwise it falls back to the in-memory search index.
+Search indexes are cached automatically in the platform-standard cache directory. On Node.js installs, `cadcli search` uses a disk-backed SQLite FTS index when the optional SQLite dependency is available; otherwise it falls back to a low-memory scan.
 
 ```txt
 macOS    ~/Library/Caches/cadcli
