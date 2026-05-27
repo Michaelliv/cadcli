@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, delimiter, join } from "node:path";
 import {
   EXIT_ERROR,
   EXIT_UNAVAILABLE,
@@ -8,20 +8,7 @@ import {
 } from "../utils/exit-codes.js";
 import { DwgCliError } from "./errors.js";
 
-export interface LibreDwgTool {
-  name: string;
-  available: boolean;
-  path?: string;
-}
-
-export interface LibreDwgStatus {
-  backend: "LibreDWG";
-  mode: "native";
-  tools: LibreDwgTool[];
-  reading: "native dwgread JSON output";
-  viewing: "native dwgread SVG output";
-  editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite";
-}
+export type LibreDwgToolName = "dwgread" | "dwgfilter";
 
 export interface LibreDwgEditResult {
   input: string;
@@ -49,61 +36,50 @@ export interface LibreDwgJsonResult {
   stderr: string;
 }
 
-const TOOLS = [
-  "dwgread",
-  "dwgfilter",
-  "dwgadd",
-  "dwgwrite",
-  "dwgrewrite",
-  "dwg2dxf",
-  "dxf2dwg",
-];
+const WINDOWS_EXTENSIONS = [".exe", ".cmd", ".bat", ".com"];
 
-function which(tool: string, toolDir?: string): string | undefined {
-  if (toolDir) {
-    const candidate = join(toolDir, tool);
-    if (existsSync(candidate)) return candidate;
+function candidateNames(tool: LibreDwgToolName): string[] {
+  return [tool, ...WINDOWS_EXTENSIONS.map((ext) => `${tool}${ext}`)];
+}
+
+function findTool(
+  tool: LibreDwgToolName,
+  toolDir?: string,
+): string | undefined {
+  const dirs = toolDir ? [toolDir] : (process.env.PATH ?? "").split(delimiter);
+  for (const dir of dirs.filter(Boolean)) {
+    for (const name of candidateNames(tool)) {
+      const candidate = join(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
   }
-  const result = spawnSync("/bin/sh", ["-lc", `command -v ${tool}`], {
-    encoding: "utf-8",
-  });
-  const found = result.stdout.trim();
-  return result.status === 0 && found ? found : undefined;
+  return undefined;
 }
 
-export function getLibreDwgStatus(toolDir?: string): LibreDwgStatus {
-  return {
-    backend: "LibreDWG",
-    mode: "native",
-    tools: TOOLS.map((name) => {
-      const path = which(name, toolDir);
-      return { name, available: Boolean(path), ...(path ? { path } : {}) };
-    }),
-    reading: "native dwgread JSON output",
-    viewing: "native dwgread SVG output",
-    editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite",
-  };
+function requireTool(tool: LibreDwgToolName, toolDir?: string): string {
+  const path = findTool(tool, toolDir);
+  if (path) return path;
+  throw new DwgCliError(
+    `LibreDWG tool not found: ${tool}. Install LibreDWG and make sure ${tool} is on PATH.`,
+    "LIBREDWG_TOOL_NOT_FOUND",
+    EXIT_UNAVAILABLE,
+  );
 }
 
-function requireTool(tool: string, toolDir?: string): string {
-  const path = which(tool, toolDir);
-  if (!path) {
-    throw new DwgCliError(
-      `LibreDWG tool not found: ${tool}. Install LibreDWG and make sure ${tool} is on PATH.`,
-      "LIBREDWG_TOOL_NOT_FOUND",
-      EXIT_UNAVAILABLE,
-    );
-  }
-  return path;
+function preview(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= 500) return trimmed;
+  return `${trimmed.slice(0, 500)}…`;
 }
 
-function runTool(
-  tool: string,
+function runLibreDwgTool(
+  tool: LibreDwgToolName,
   args: string[],
   toolDir?: string,
 ): { stdout: string; stderr: string } {
   const path = requireTool(tool, toolDir);
   const result = spawnSync(path, args, { encoding: "utf-8" });
+
   if (result.error) {
     throw new DwgCliError(
       `Could not run ${tool}: ${result.error.message}`,
@@ -111,13 +87,16 @@ function runTool(
       EXIT_ERROR,
     );
   }
+
   if (result.status !== 0) {
+    const details = preview(result.stderr || result.stdout);
     throw new DwgCliError(
-      `${tool} failed for ${basename(args.at(-1) ?? "input")}: ${result.stderr || result.stdout}`.trim(),
+      `${tool} failed for ${basename(args.at(-1) ?? "input")}${details ? `: ${details}` : ""}`,
       "LIBREDWG_RUN_FAILED",
       EXIT_USER_ERROR,
     );
   }
+
   return { stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -125,31 +104,31 @@ export function readJsonWithLibreDwg(
   file: string,
   opts: { toolDir?: string } = {},
 ): LibreDwgJsonResult {
-  const result = runTool("dwgread", ["-O", "JSON", file], opts.toolDir);
-  let json: unknown;
+  const result = runLibreDwgTool("dwgread", ["-O", "JSON", file], opts.toolDir);
+
   try {
-    json = JSON.parse(result.stdout);
+    return {
+      input: file,
+      json: JSON.parse(result.stdout),
+      backend: "LibreDWG",
+      tool: "dwgread",
+      stderr: result.stderr,
+    };
   } catch (error) {
+    const details = preview(result.stdout);
     throw new DwgCliError(
-      `dwgread produced invalid JSON for ${basename(file)}: ${(error as Error).message}`,
+      `dwgread produced invalid JSON for ${basename(file)}: ${(error as Error).message}${details ? `; stdout: ${details}` : ""}`,
       "LIBREDWG_INVALID_JSON",
       EXIT_USER_ERROR,
     );
   }
-  return {
-    input: file,
-    json,
-    backend: "LibreDWG",
-    tool: "dwgread",
-    stderr: result.stderr,
-  };
 }
 
 export function renderSvgWithLibreDwg(
   file: string,
   opts: { toolDir?: string } = {},
 ): LibreDwgViewResult {
-  const result = runTool("dwgread", ["-O", "SVG", file], opts.toolDir);
+  const result = runLibreDwgTool("dwgread", ["-O", "SVG", file], opts.toolDir);
   return {
     input: file,
     svg: result.stdout,
@@ -173,12 +152,15 @@ export function editWithLibreDwgFilter(opts: {
       EXIT_USER_ERROR,
     );
   }
+
   if (opts.input !== opts.output) copyFileSync(opts.input, opts.output);
-  const result = runTool(
+
+  const result = runLibreDwgTool(
     "dwgfilter",
     ["-i", opts.expression, opts.output],
     opts.toolDir,
   );
+
   return {
     input: opts.input,
     output: opts.output,

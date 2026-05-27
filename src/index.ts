@@ -1,4 +1,4 @@
-export { LibredwgParser } from "./core/adapter.js";
+export { NativeLibreDwgReader } from "./core/adapter.js";
 export {
   getBlocks,
   getEntities,

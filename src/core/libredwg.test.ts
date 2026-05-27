@@ -3,7 +3,6 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   editWithLibreDwgFilter,
-  getLibreDwgStatus,
   readJsonWithLibreDwg,
   renderSvgWithLibreDwg,
 } from "./libredwg.js";
@@ -24,21 +23,8 @@ beforeEach(() => {
   mkdirSync(binDir, { recursive: true });
 });
 
-describe("LibreDWG backend", () => {
-  test("reports native LibreDWG tool availability", () => {
-    const dwgread = addTool("dwgread", "echo svg");
-    const status = getLibreDwgStatus(binDir);
-    expect(status.backend).toBe("LibreDWG");
-    expect(status.mode).toBe("native");
-    expect(status.tools.map((tool) => tool.name)).toContain("dwgfilter");
-    expect(status.tools.find((tool) => tool.name === "dwgread")).toEqual({
-      name: "dwgread",
-      available: true,
-      path: dwgread,
-    });
-  });
-
-  test("reads JSON through native dwgread", () => {
+describe("native LibreDWG boundary", () => {
+  test("reads JSON through dwgread", () => {
     addTool("dwgread", `echo '{"entities":[]}'`);
     const result = readJsonWithLibreDwg("drawing.dwg", { toolDir: binDir });
     expect(result).toEqual({
@@ -50,7 +36,7 @@ describe("LibreDWG backend", () => {
     });
   });
 
-  test("renders SVG through native dwgread", () => {
+  test("renders SVG through dwgread", () => {
     addTool("dwgread", "echo '<svg></svg>'; echo warning >&2");
     const result = renderSvgWithLibreDwg("drawing.dwg", { toolDir: binDir });
     expect(result).toEqual({
@@ -62,7 +48,18 @@ describe("LibreDWG backend", () => {
     });
   });
 
-  test("edits a copied output through native dwgfilter", () => {
+  test("finds tools on PATH when no tool directory is provided", () => {
+    addTool("dwgread", "echo '<svg>path</svg>'");
+    const oldPath = process.env.PATH;
+    process.env.PATH = `${binDir}${oldPath ? `:${oldPath}` : ""}`;
+    try {
+      expect(renderSvgWithLibreDwg("drawing.dwg").svg).toContain("path");
+    } finally {
+      process.env.PATH = oldPath;
+    }
+  });
+
+  test("edits a copied output through dwgfilter", () => {
     addTool("dwgfilter", "echo edited >&2");
     const input = join(dir, "in.dwg");
     const output = join(dir, "out.dwg");
@@ -93,7 +90,7 @@ describe("LibreDWG backend", () => {
     expect(result.output).toBe(input);
   });
 
-  test("refuses in-place edits without explicit overwrite", () => {
+  test("refuses accidental in-place edits", () => {
     expect(() =>
       editWithLibreDwgFilter({
         input: "drawing.dwg",
@@ -103,23 +100,28 @@ describe("LibreDWG backend", () => {
     ).toThrow("Refusing to edit in place");
   });
 
-  test("throws friendly errors for missing and failing native tools", () => {
+  test("throws friendly errors for missing, failing, and malformed tool output", () => {
     expect(() =>
       renderSvgWithLibreDwg("missing.dwg", { toolDir: binDir }),
-    ).toThrow("LibreDWG tool not found");
+    ).toThrow("LibreDWG tool not found: dwgread");
 
     addTool("dwgread", "echo nope >&2; exit 7");
     expect(() => renderSvgWithLibreDwg("bad.dwg", { toolDir: binDir })).toThrow(
-      "dwgread failed for bad.dwg",
+      "dwgread failed for bad.dwg: nope",
     );
 
-    addTool("dwgread", "echo not-json");
+    addTool("dwgread", "printf 'not-json'");
     expect(() => readJsonWithLibreDwg("bad.dwg", { toolDir: binDir })).toThrow(
-      "dwgread produced invalid JSON",
+      "stdout: not-json",
+    );
+
+    addTool("dwgread", `python3 -c "print('x' * 600, end='')"`);
+    expect(() => readJsonWithLibreDwg("bad.dwg", { toolDir: binDir })).toThrow(
+      "…",
     );
   });
 
-  test("wraps spawn errors from native tools", () => {
+  test("wraps spawn errors", () => {
     mkdirSync(join(binDir, "dwgread"));
     expect(() => renderSvgWithLibreDwg("bad.dwg", { toolDir: binDir })).toThrow(
       "Could not run dwgread",

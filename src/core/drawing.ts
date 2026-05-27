@@ -9,7 +9,7 @@ import type {
   ThumbnailResult,
 } from "../types.js";
 import { EXIT_USER_ERROR } from "../utils/exit-codes.js";
-import { LibredwgParser } from "./adapter.js";
+import { NativeLibreDwgReader } from "./adapter.js";
 import { DwgCliError } from "./errors.js";
 import { readCadFile } from "./files.js";
 import { normalizeDocument } from "./normalize.js";
@@ -25,7 +25,7 @@ export async function loadDrawing(
   opts: LoadOptions = {},
 ): Promise<DwgDocument> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new LibredwgParser(opts.toolDir);
+  const parser = opts.parser ?? new NativeLibreDwgReader(opts.toolDir);
   const raw = await parser.parse(file, bytes, format);
   return normalizeDocument(file, format, raw);
 }
@@ -117,7 +117,7 @@ export async function getThumbnail(
   opts: LoadOptions = {},
 ): Promise<ThumbnailResult> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new LibredwgParser(opts.toolDir);
+  const parser = opts.parser ?? new NativeLibreDwgReader(opts.toolDir);
   if (!parser.thumbnail)
     throw new DwgCliError(
       "Thumbnail extraction is not available through the configured parser.",

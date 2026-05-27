@@ -3,7 +3,7 @@ import { EXIT_UNAVAILABLE, EXIT_USER_ERROR } from "../utils/exit-codes.js";
 import { DwgCliError } from "./errors.js";
 import { readJsonWithLibreDwg } from "./libredwg.js";
 
-export class LibredwgParser implements DwgParser {
+export class NativeLibreDwgReader implements DwgParser {
   constructor(private readonly toolDir?: string) {}
 
   async parse(
