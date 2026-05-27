@@ -69,7 +69,7 @@ export interface ThumbnailResult {
   extension: string;
 }
 
-export interface DwgParser {
+export interface DrawingReader {
   parse(file: string, bytes: Uint8Array, format: DwgFormat): Promise<unknown>;
   thumbnail?(
     file: string,

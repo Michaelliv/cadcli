@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Dwg } from "./index.js";
-import type { DwgParser } from "./types.js";
+import type { DrawingReader } from "./types.js";
 
 describe("SDK", () => {
   test("exports Dwg and exposes ergonomic methods", async () => {
@@ -10,7 +10,7 @@ describe("SDK", () => {
     mkdirSync(dir, { recursive: true });
     const file = join(dir, "x.dxf");
     writeFileSync(file, "fake");
-    const parser: DwgParser = {
+    const parser: DrawingReader = {
       async parse() {
         return { entities: [{ type: "LINE", layer: "0" }] };
       },
@@ -22,7 +22,7 @@ describe("SDK", () => {
         };
       },
     };
-    const dwg = Dwg.open(file, { parser });
+    const dwg = Dwg.open(file, { reader: parser });
     expect((await dwg.info()).format).toBe("DXF");
     expect(await dwg.layers()).toEqual([{ name: "0", entityCount: 1 }]);
     expect((await dwg.search({ query: "line" }))[0].type).toBe("LINE");
@@ -32,7 +32,7 @@ describe("SDK", () => {
     expect(await dwg.document()).toEqual(await dwg.json());
     expect((await dwg.svg()).svg).toContain("<svg");
     expect((await dwg.thumbnail()).mimeType).toBe("image/png");
-    expect(Dwg.open(file, { parser })).toBeInstanceOf(Dwg);
+    expect(Dwg.open(file, { reader: parser })).toBeInstanceOf(Dwg);
   });
 
   test("SDK exposes LibreDWG native view and edit methods", () => {

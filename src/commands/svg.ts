@@ -1,6 +1,6 @@
 import { toSvg } from "../core/drawing.js";
 import { writeOutput } from "../core/files.js";
-import type { DwgParser } from "../types.js";
+import type { DrawingReader } from "../types.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success } from "../utils/output.js";
 import { handleCommandError } from "./shared.js";
@@ -9,13 +9,13 @@ export async function svg(
   file: string,
   options: OutputOptions & {
     output?: string;
-    parser?: DwgParser;
+    reader?: DrawingReader;
     toolDir?: string;
   },
 ): Promise<void> {
   try {
     const result = await toSvg(file, {
-      parser: options.parser,
+      reader: options.reader,
       toolDir: options.toolDir,
     });
     if (options.output) {

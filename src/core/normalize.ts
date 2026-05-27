@@ -9,6 +9,29 @@ import type {
   DwgSummary,
 } from "../types.js";
 
+const ENTITY_ARRAY_FIELDS = ["entities", "Entities", "objects", "Objects"];
+const LAYER_ARRAY_FIELDS = ["layers", "Layers"];
+const BLOCK_ARRAY_FIELDS = ["blocks", "Blocks", "blockHeaders"];
+const POINT_FIELDS = [
+  "start",
+  "end",
+  "center",
+  "insertionPoint",
+  "position",
+  "point",
+] as const;
+const POINT_LIST_FIELDS = ["vertices", "points"] as const;
+const SUPPORTED_ENTITY_TYPES = new Set([
+  "LINE",
+  "CIRCLE",
+  "ARC",
+  "LWPOLYLINE",
+  "POLYLINE",
+  "TEXT",
+  "MTEXT",
+  "POINT",
+]);
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object"
     ? (value as Record<string, unknown>)
@@ -27,29 +50,45 @@ function firstArray(raw: Record<string, unknown>, names: string[]): unknown[] {
   return [];
 }
 
+function stringField(
+  rec: Record<string, unknown>,
+  names: string[],
+): string | undefined {
+  for (const name of names) {
+    const value = rec[name];
+    if (value !== undefined && value !== null && String(value) !== "") {
+      return String(value);
+    }
+  }
+  return undefined;
+}
+
 function getName(value: unknown, fallback: string): string {
-  const rec = asRecord(value);
-  return String(
-    rec.name ?? rec.Name ?? rec.layerName ?? rec.LayerName ?? fallback,
+  return (
+    stringField(asRecord(value), ["name", "Name", "layerName", "LayerName"]) ??
+    fallback
   );
 }
 
 function getEntityType(value: unknown): string {
-  const rec = asRecord(value);
-  return String(
-    rec.type ??
-      rec.Type ??
-      rec.objectType ??
-      rec.entityType ??
-      rec._type ??
-      "UNKNOWN",
+  return (
+    stringField(asRecord(value), [
+      "type",
+      "Type",
+      "objectType",
+      "entityType",
+      "_type",
+    ]) ?? "UNKNOWN"
   ).toUpperCase();
 }
 
 function getLayer(value: unknown): string | undefined {
-  const rec = asRecord(value);
-  const layer = rec.layer ?? rec.Layer ?? rec.layerName ?? rec.layer_name;
-  return layer === undefined || layer === null ? undefined : String(layer);
+  return stringField(asRecord(value), [
+    "layer",
+    "Layer",
+    "layerName",
+    "layer_name",
+  ]);
 }
 
 function pointFrom(value: unknown): { x: number; y: number } | null {
@@ -61,35 +100,65 @@ function pointFrom(value: unknown): { x: number; y: number } | null {
 
 function collectEntityPoints(entity: DwgEntity): { x: number; y: number }[] {
   const points: { x: number; y: number }[] = [];
-  const rec = entity.data;
-  for (const key of [
-    "start",
-    "end",
-    "center",
-    "insertionPoint",
-    "position",
-    "point",
-  ] as const) {
-    const p = pointFrom(rec[key]);
-    if (p) points.push(p);
+  for (const key of POINT_FIELDS) {
+    const point = pointFrom(entity.data[key]);
+    if (point) points.push(point);
   }
-  for (const key of ["vertices", "points"] as const) {
-    for (const item of asArray(rec[key])) {
-      const p = pointFrom(item);
-      if (p) points.push(p);
+  for (const key of POINT_LIST_FIELDS) {
+    for (const item of asArray(entity.data[key])) {
+      const point = pointFrom(item);
+      if (point) points.push(point);
     }
   }
   return points;
 }
 
-export function computeBounds(entities: DwgEntity[]): DwgBounds | undefined {
-  const all = entities.flatMap(collectEntityPoints);
-  if (all.length === 0) return undefined;
+function normalizeEntity(item: unknown, index: number): DwgEntity {
+  const rec = asRecord(item);
   return {
-    minX: Math.min(...all.map((p) => p.x)),
-    minY: Math.min(...all.map((p) => p.y)),
-    maxX: Math.max(...all.map((p) => p.x)),
-    maxY: Math.max(...all.map((p) => p.y)),
+    id: String(rec.id ?? rec.handle ?? rec.Handle ?? index + 1),
+    type: getEntityType(rec),
+    layer: getLayer(rec),
+    color: rec.color as string | number | undefined,
+    data: rec,
+  };
+}
+
+function normalizeLayers(
+  rawLayers: unknown[],
+  entities: DwgEntity[],
+): DwgLayer[] {
+  const counts = new Map<string, number>();
+  for (const [index, layer] of rawLayers.entries()) {
+    counts.set(getName(layer, `Layer ${index + 1}`), 0);
+  }
+  for (const entity of entities) {
+    if (!entity.layer) continue;
+    counts.set(entity.layer, (counts.get(entity.layer) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, entityCount]) => ({ name, entityCount }));
+}
+
+function normalizeBlocks(rawBlocks: unknown[]): DwgBlock[] {
+  return rawBlocks.map((block, index) => {
+    const rec = asRecord(block);
+    return {
+      name: getName(block, `Block ${index + 1}`),
+      entityCount: asArray(rec.entities ?? rec.Entities).length,
+    };
+  });
+}
+
+export function computeBounds(entities: DwgEntity[]): DwgBounds | undefined {
+  const points = entities.flatMap(collectEntityPoints);
+  if (points.length === 0) return undefined;
+  return {
+    minX: Math.min(...points.map((p) => p.x)),
+    minY: Math.min(...points.map((p) => p.y)),
+    maxX: Math.max(...points.map((p) => p.x)),
+    maxY: Math.max(...points.map((p) => p.y)),
   };
 }
 
@@ -99,62 +168,21 @@ export function normalizeDocument(
   raw: unknown,
 ): DwgDocument {
   const root = asRecord(raw);
-  const rawEntities = firstArray(root, [
-    "entities",
-    "Entities",
-    "objects",
-    "Objects",
-  ]);
-  const entities: DwgEntity[] = rawEntities.map((item, index) => {
-    const rec = asRecord(item);
-    return {
-      id: String(rec.id ?? rec.handle ?? rec.Handle ?? index + 1),
-      type: getEntityType(rec),
-      layer: getLayer(rec),
-      color: rec.color as string | number | undefined,
-      data: rec,
-    };
-  });
-
+  const entities = firstArray(root, ENTITY_ARRAY_FIELDS).map(normalizeEntity);
   const unsupported = entities.filter(
-    (e) =>
-      ![
-        "LINE",
-        "CIRCLE",
-        "ARC",
-        "LWPOLYLINE",
-        "POLYLINE",
-        "TEXT",
-        "MTEXT",
-        "POINT",
-      ].includes(e.type),
+    (entity) => !SUPPORTED_ENTITY_TYPES.has(entity.type),
   );
-  const rawLayers = firstArray(root, ["layers", "Layers"]);
-  const layerNames = new Set<string>(
-    rawLayers.map((l, i) => getName(l, `Layer ${i + 1}`)),
+  const layers = normalizeLayers(
+    firstArray(root, LAYER_ARRAY_FIELDS),
+    entities,
   );
-  for (const entity of entities) if (entity.layer) layerNames.add(entity.layer);
-  const layers: DwgLayer[] = [...layerNames].sort().map((name) => ({
-    name,
-    entityCount: entities.filter((e) => e.layer === name).length,
-  }));
-
-  const rawBlocks = firstArray(root, ["blocks", "Blocks", "blockHeaders"]);
-  const blocks: DwgBlock[] = rawBlocks.map((block, index) => {
-    const rec = asRecord(block);
-    const blockEntities = asArray(rec.entities ?? rec.Entities);
-    return {
-      name: getName(block, `Block ${index + 1}`),
-      entityCount: blockEntities.length,
-    };
-  });
+  const blocks = normalizeBlocks(firstArray(root, BLOCK_ARRAY_FIELDS));
+  const version = stringField(root, ["version", "headerVersion", "dwgVersion"]);
 
   const summary: DwgSummary = {
     file: basename(file),
     format,
-    version:
-      String(root.version ?? root.headerVersion ?? root.dwgVersion ?? "") ||
-      undefined,
+    version,
     counts: {
       entities: entities.length,
       layers: layers.length,

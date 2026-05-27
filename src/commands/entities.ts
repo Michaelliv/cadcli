@@ -1,12 +1,12 @@
 import { Dwg } from "../sdk.js";
-import type { DwgParser } from "../types.js";
+import type { DrawingReader } from "../types.js";
 import type { OutputOptions } from "../utils/output.js";
 import { dim, output } from "../utils/output.js";
 import { handleCommandError, parseLimit } from "./shared.js";
 
 export async function entities(
   file: string,
-  options: OutputOptions & { parser?: DwgParser; toolDir?: string } & {
+  options: OutputOptions & { reader?: DrawingReader; toolDir?: string } & {
     type?: string;
     layer?: string;
     limit?: string;
@@ -15,7 +15,7 @@ export async function entities(
 ): Promise<void> {
   try {
     const items = await Dwg.open(file, {
-      parser: options.parser,
+      reader: options.reader,
       toolDir: options.toolDir,
     }).entities({
       type: options.type,

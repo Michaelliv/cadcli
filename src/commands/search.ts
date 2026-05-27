@@ -1,5 +1,5 @@
 import { Dwg } from "../sdk.js";
-import type { DwgParser } from "../types.js";
+import type { DrawingReader } from "../types.js";
 import type { OutputOptions } from "../utils/output.js";
 import { bold, dim, output } from "../utils/output.js";
 import { handleCommandError, parseLimit } from "./shared.js";
@@ -12,7 +12,7 @@ export interface SearchOptions extends OutputOptions {
   total?: boolean;
   score?: boolean;
   snippets?: boolean;
-  parser?: DwgParser;
+  reader?: DrawingReader;
   toolDir?: string;
 }
 
@@ -22,7 +22,7 @@ export async function search(
 ): Promise<void> {
   try {
     const results = await Dwg.open(file, {
-      parser: options.parser,
+      reader: options.reader,
       toolDir: options.toolDir,
     }).search({
       query: options.query,

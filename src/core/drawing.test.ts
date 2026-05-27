@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { DwgParser } from "../types.js";
+import type { DrawingReader } from "../types.js";
 import {
   filterEntities,
   getEntities,
@@ -40,7 +40,7 @@ const raw = {
   ],
 };
 
-const parser: DwgParser = {
+const parser: DrawingReader = {
   async parse() {
     return raw;
   },
@@ -57,7 +57,7 @@ afterEach(() => {});
 
 describe("drawing core", () => {
   test("loads and normalizes drawings", async () => {
-    const doc = await loadDrawing(file, { parser });
+    const doc = await loadDrawing(file, { reader: parser });
     expect(doc.summary.format).toBe("DWG");
     expect(doc.summary.version).toBe("AC1032");
     expect(doc.layers.map((l) => l.name)).toEqual(["0", "A-WALL"]);
@@ -103,12 +103,12 @@ describe("drawing core", () => {
     const entities = await getEntities(
       file,
       { type: "circle", layer: "a-wall" },
-      { parser },
+      { reader: parser },
     );
     expect(entities).toHaveLength(1);
     expect(entities[0].id).toBe("11");
     expect(
-      filterEntities((await loadDrawing(file, { parser })).entities, {
+      filterEntities((await loadDrawing(file, { reader: parser })).entities, {
         limit: 2,
       }),
     ).toHaveLength(2);
@@ -116,10 +116,10 @@ describe("drawing core", () => {
 
   test("throws friendly errors for unknown layer/type", async () => {
     await expect(
-      getEntities(file, { layer: "missing" }, { parser }),
+      getEntities(file, { layer: "missing" }, { reader: parser }),
     ).rejects.toThrow("Layer not found");
     await expect(
-      getEntities(file, { type: "arc" }, { parser }),
+      getEntities(file, { type: "arc" }, { reader: parser }),
     ).rejects.toThrow("Entity type not found");
   });
 
@@ -127,7 +127,7 @@ describe("drawing core", () => {
     const results = await searchDrawing(
       file,
       { query: "circle", layer: "A-WALL", score: true },
-      { parser },
+      { reader: parser },
     );
     expect(results).toHaveLength(1);
     expect(results[0].entityId).toBe("11");
@@ -136,7 +136,7 @@ describe("drawing core", () => {
     const noQuery = await searchDrawing(
       file,
       { limit: 2, snippets: false },
-      { parser },
+      { reader: parser },
     );
     expect(noQuery).toHaveLength(2);
     expect(noQuery[0].matches).toEqual([]);
@@ -145,7 +145,7 @@ describe("drawing core", () => {
   test("search caches indexes in the standard cache directory", async () => {
     const cacheDir = join(dir, "cache");
     let parses = 0;
-    const countingParser: DwgParser = {
+    const countingParser: DrawingReader = {
       async parse() {
         parses++;
         return raw;
@@ -154,19 +154,19 @@ describe("drawing core", () => {
     await searchDrawing(
       file,
       { query: "circle", cacheDir },
-      { parser: countingParser },
+      { reader: countingParser },
     );
     await searchDrawing(
       file,
       { query: "circle", cacheDir },
-      { parser: countingParser },
+      { reader: countingParser },
     );
     expect(parses).toBe(1);
     expect(existsSync(join(cacheDir, "search"))).toBe(true);
   });
 
   test("renders common entities to SVG and reports unsupported", async () => {
-    const result = await toSvg(file, { parser });
+    const result = await toSvg(file, { reader: parser });
     expect(result.svg).toContain("<line");
     expect(result.svg).toContain("<circle");
     expect(result.unsupported).toBe(1);
@@ -213,10 +213,10 @@ describe("drawing core", () => {
   });
 
   test("reports unavailable and missing thumbnails", async () => {
-    await expect(getThumbnail(file, { parser })).rejects.toThrow(
+    await expect(getThumbnail(file, { reader: parser })).rejects.toThrow(
       "Thumbnail extraction is not available",
     );
-    const nullThumbnailParser: DwgParser = {
+    const nullThumbnailParser: DrawingReader = {
       async parse() {
         return raw;
       },
@@ -225,17 +225,17 @@ describe("drawing core", () => {
       },
     };
     await expect(
-      getThumbnail(file, { parser: nullThumbnailParser }),
+      getThumbnail(file, { reader: nullThumbnailParser }),
     ).rejects.toThrow("No thumbnail was found");
   });
 
   test("reports file not found and unsupported extensions", async () => {
     await expect(
-      loadDrawing(join(dir, "missing.dwg"), { parser }),
+      loadDrawing(join(dir, "missing.dwg"), { reader: parser }),
     ).rejects.toThrow("File not found");
     const txt = join(dir, "sample.txt");
     writeFileSync(txt, "fake");
-    await expect(loadDrawing(txt, { parser })).rejects.toBeInstanceOf(
+    await expect(loadDrawing(txt, { reader: parser })).rejects.toBeInstanceOf(
       DwgCliError,
     );
   });

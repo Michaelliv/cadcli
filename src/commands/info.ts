@@ -1,16 +1,16 @@
 import { Dwg } from "../sdk.js";
-import type { DwgParser } from "../types.js";
+import type { DrawingReader } from "../types.js";
 import type { OutputOptions } from "../utils/output.js";
 import { bold, dim, output } from "../utils/output.js";
 import { handleCommandError } from "./shared.js";
 
 export async function info(
   file: string,
-  options: OutputOptions & { parser?: DwgParser; toolDir?: string },
+  options: OutputOptions & { reader?: DrawingReader; toolDir?: string },
 ): Promise<void> {
   try {
     const summary = await Dwg.open(file, {
-      parser: options.parser,
+      reader: options.reader,
       toolDir: options.toolDir,
     }).info();
     output(options, {

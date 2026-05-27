@@ -1,14 +1,14 @@
 import type {
+  DrawingReader,
   DwgBlock,
   DwgDocument,
   DwgEntity,
   DwgLayer,
-  DwgParser,
   EntityFilter,
   SvgResult,
   ThumbnailResult,
 } from "../types.js";
-import { EXIT_USER_ERROR } from "../utils/exit-codes.js";
+import { EXIT_UNAVAILABLE, EXIT_USER_ERROR } from "../utils/exit-codes.js";
 import { NativeLibreDwgReader } from "./adapter.js";
 import { DwgCliError } from "./errors.js";
 import { readCadFile } from "./files.js";
@@ -16,8 +16,12 @@ import { normalizeDocument } from "./normalize.js";
 import { renderSvg } from "./svg.js";
 
 export interface LoadOptions {
-  parser?: DwgParser;
+  reader?: DrawingReader;
   toolDir?: string;
+}
+
+function readerFor(opts: LoadOptions): DrawingReader {
+  return opts.reader ?? new NativeLibreDwgReader(opts.toolDir);
 }
 
 export async function loadDrawing(
@@ -25,8 +29,7 @@ export async function loadDrawing(
   opts: LoadOptions = {},
 ): Promise<DwgDocument> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new NativeLibreDwgReader(opts.toolDir);
-  const raw = await parser.parse(file, bytes, format);
+  const raw = await readerFor(opts).parse(file, bytes, format);
   return normalizeDocument(file, format, raw);
 }
 
@@ -117,19 +120,19 @@ export async function getThumbnail(
   opts: LoadOptions = {},
 ): Promise<ThumbnailResult> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new NativeLibreDwgReader(opts.toolDir);
-  if (!parser.thumbnail)
+  const reader = readerFor(opts);
+  if (!reader.thumbnail)
     throw new DwgCliError(
-      "Thumbnail extraction is not available through the configured parser.",
+      "Thumbnail extraction is not available through the configured reader.",
       "THUMBNAIL_UNAVAILABLE",
-      4,
+      EXIT_UNAVAILABLE,
     );
-  const result = await parser.thumbnail(file, bytes, format);
+  const result = await reader.thumbnail(file, bytes, format);
   if (!result)
     throw new DwgCliError(
       "No thumbnail was found in this drawing.",
       "THUMBNAIL_UNAVAILABLE",
-      4,
+      EXIT_UNAVAILABLE,
     );
   return result;
 }
