@@ -7,10 +7,17 @@ import { handleCommandError } from "./shared.js";
 
 export async function json(
   file: string,
-  options: OutputOptions & { output?: string; parser?: DwgParser },
+  options: OutputOptions & {
+    output?: string;
+    parser?: DwgParser;
+    toolDir?: string;
+  },
 ): Promise<void> {
   try {
-    const doc = await toJson(file, { parser: options.parser });
+    const doc = await toJson(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    });
     const content = `${stringifyJson(doc)}\n`;
     if (options.output) {
       writeOutput(options.output, content);

@@ -6,10 +6,13 @@ import { handleCommandError } from "./shared.js";
 
 export async function info(
   file: string,
-  options: OutputOptions & { parser?: DwgParser },
+  options: OutputOptions & { parser?: DwgParser; toolDir?: string },
 ): Promise<void> {
   try {
-    const summary = await Dwg.open(file, { parser: options.parser }).info();
+    const summary = await Dwg.open(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    }).info();
     output(options, {
       json: () => summary,
       human: () => {

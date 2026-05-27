@@ -27,7 +27,7 @@ Search indexes are cached automatically in the platform-standard cache directory
 
 ## LibreDWG backend
 
-Use LibreDWG only. Native LibreDWG tools handle file-output workflows: `dwgread` for viewing/SVG, `dwgfilter` for jq-backed edits, and `dwgadd`/`dwgwrite`/`dwgrewrite` for create/rewrite workflows. The WebAssembly package `@mlightcad/libredwg-web` is the Node-readable LibreDWG path for inspection/search.
+Use native LibreDWG only. `dwgread` is required for inspection/search/JSON/SVG/viewing. `dwgfilter` handles jq-backed edits, and `dwgadd`/`dwgwrite`/`dwgrewrite` are the create/rewrite path.
 
 ## Adding a new command
 

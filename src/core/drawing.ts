@@ -17,7 +17,7 @@ import { renderSvg } from "./svg.js";
 
 export interface LoadOptions {
   parser?: DwgParser;
-  wasmPath?: string;
+  toolDir?: string;
 }
 
 export async function loadDrawing(
@@ -25,7 +25,7 @@ export async function loadDrawing(
   opts: LoadOptions = {},
 ): Promise<DwgDocument> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new LibredwgParser(opts.wasmPath);
+  const parser = opts.parser ?? new LibredwgParser(opts.toolDir);
   const raw = await parser.parse(file, bytes, format);
   return normalizeDocument(file, format, raw);
 }
@@ -117,7 +117,7 @@ export async function getThumbnail(
   opts: LoadOptions = {},
 ): Promise<ThumbnailResult> {
   const { bytes, format } = readCadFile(file);
-  const parser = opts.parser ?? new LibredwgParser(opts.wasmPath);
+  const parser = opts.parser ?? new LibredwgParser(opts.toolDir);
   if (!parser.thumbnail)
     throw new DwgCliError(
       "Thumbnail extraction is not available through the configured parser.",

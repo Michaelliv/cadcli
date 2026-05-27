@@ -29,7 +29,7 @@ Workflow: **info → search/entities → view/edit**.
 - `cadcli view <file>` — render SVG with native LibreDWG `dwgread`.
 - `cadcli edit <file> --jq <expression>` — edit via native LibreDWG `dwgfilter`; use `-o` for safe copy output or `--overwrite` for in-place edits.
 - `cadcli json <file>` — print normalized JSON or write with `-o`.
-- `cadcli svg <file>` — print/write best-effort SVG with libredwg-web for common entities.
+- `cadcli svg <file>` — print/write best-effort SVG from native LibreDWG JSON for common entities.
 - `cadcli thumbnail <file>` — extract an embedded thumbnail when available.
 
 All commands support `--json` for structured output and `-q, --quiet` for scripts. Search indexes are cached automatically in the platform-standard cache directory (`~/Library/Caches/cadcli` on macOS, `$XDG_CACHE_HOME/cadcli` or `~/.cache/cadcli` on Linux, and `%LOCALAPPDATA%\\cadcli\\Cache` on Windows). Set `CADCLI_CACHE_DIR` to override it.
@@ -49,7 +49,7 @@ The SDK exports `Dwg`, LibreDWG helpers, core helpers, and consumer-facing types
 
 ## LibreDWG backend
 
-`cadcli` uses LibreDWG only. The bundled `@mlightcad/libredwg-web` package handles inspection/search in Node. Native LibreDWG tools unlock file-output workflows: `dwgread` for SVG output, `dwgfilter` for jq-style modifications, and `dwgadd`/`dwgwrite`/`dwgrewrite` for create/rewrite workflows.
+`cadcli` uses native LibreDWG only. `dwgread` provides JSON for inspection/search/export and SVG for viewing. `dwgfilter` provides jq-style modifications, and `dwgadd`/`dwgwrite`/`dwgrewrite` are the future create/rewrite path.
 
 ## For agents
 

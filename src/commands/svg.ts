@@ -7,10 +7,17 @@ import { handleCommandError } from "./shared.js";
 
 export async function svg(
   file: string,
-  options: OutputOptions & { output?: string; parser?: DwgParser },
+  options: OutputOptions & {
+    output?: string;
+    parser?: DwgParser;
+    toolDir?: string;
+  },
 ): Promise<void> {
   try {
-    const result = await toSvg(file, { parser: options.parser });
+    const result = await toSvg(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    });
     if (options.output) {
       writeOutput(options.output, result.svg);
       output(options, {

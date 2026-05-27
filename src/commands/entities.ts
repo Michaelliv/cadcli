@@ -6,7 +6,7 @@ import { handleCommandError, parseLimit } from "./shared.js";
 
 export async function entities(
   file: string,
-  options: OutputOptions & { parser?: DwgParser } & {
+  options: OutputOptions & { parser?: DwgParser; toolDir?: string } & {
     type?: string;
     layer?: string;
     limit?: string;
@@ -14,7 +14,10 @@ export async function entities(
   },
 ): Promise<void> {
   try {
-    const items = await Dwg.open(file, { parser: options.parser }).entities({
+    const items = await Dwg.open(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    }).entities({
       type: options.type,
       layer: options.layer,
       limit: parseLimit(options.limit),

@@ -25,7 +25,6 @@ import type {
   DwgDocument,
   DwgEntity,
   DwgLayer,
-  DwgParser,
   DwgSummary,
   EntityFilter,
   SvgResult,
@@ -95,9 +94,5 @@ export class Dwg {
 
   static open(file: string, opts?: LoadOptions): Dwg {
     return new Dwg(file, opts);
-  }
-
-  static withLibreDwgParser(parser: DwgParser, file: string): Dwg {
-    return new Dwg(file, { parser });
   }
 }

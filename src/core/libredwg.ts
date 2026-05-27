@@ -16,10 +16,11 @@ export interface LibreDwgTool {
 
 export interface LibreDwgStatus {
   backend: "LibreDWG";
-  mode: "libredwg-native+libredwg-web";
+  mode: "native";
   tools: LibreDwgTool[];
-  viewing: "LibreDWG dwgread when available; libredwg-web renderer otherwise";
-  editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite when available";
+  reading: "native dwgread JSON output";
+  viewing: "native dwgread SVG output";
+  editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite";
 }
 
 export interface LibreDwgEditResult {
@@ -35,6 +36,14 @@ export interface LibreDwgViewResult {
   input: string;
   output?: string;
   svg: string;
+  backend: "LibreDWG";
+  tool: "dwgread";
+  stderr: string;
+}
+
+export interface LibreDwgJsonResult {
+  input: string;
+  json: unknown;
   backend: "LibreDWG";
   tool: "dwgread";
   stderr: string;
@@ -65,13 +74,14 @@ function which(tool: string, toolDir?: string): string | undefined {
 export function getLibreDwgStatus(toolDir?: string): LibreDwgStatus {
   return {
     backend: "LibreDWG",
-    mode: "libredwg-native+libredwg-web",
+    mode: "native",
     tools: TOOLS.map((name) => {
       const path = which(name, toolDir);
       return { name, available: Boolean(path), ...(path ? { path } : {}) };
     }),
-    viewing: "LibreDWG dwgread when available; libredwg-web renderer otherwise",
-    editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite when available",
+    reading: "native dwgread JSON output",
+    viewing: "native dwgread SVG output",
+    editing: "native dwgfilter/dwgadd/dwgwrite/dwgrewrite",
   };
 }
 
@@ -109,6 +119,30 @@ function runTool(
     );
   }
   return { stdout: result.stdout, stderr: result.stderr };
+}
+
+export function readJsonWithLibreDwg(
+  file: string,
+  opts: { toolDir?: string } = {},
+): LibreDwgJsonResult {
+  const result = runTool("dwgread", ["-O", "JSON", file], opts.toolDir);
+  let json: unknown;
+  try {
+    json = JSON.parse(result.stdout);
+  } catch (error) {
+    throw new DwgCliError(
+      `dwgread produced invalid JSON for ${basename(file)}: ${(error as Error).message}`,
+      "LIBREDWG_INVALID_JSON",
+      EXIT_USER_ERROR,
+    );
+  }
+  return {
+    input: file,
+    json,
+    backend: "LibreDWG",
+    tool: "dwgread",
+    stderr: result.stderr,
+  };
 }
 
 export function renderSvgWithLibreDwg(

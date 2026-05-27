@@ -172,11 +172,10 @@ describe("commands", () => {
     expect(JSON.parse(stdout).svg).toContain("native");
     resetOutput();
     await view(file, {
-      parser,
-      output: join(dir, "libredwg-web.svg"),
-      toolDir: join(dir, "empty-bin"),
+      output: join(dir, "view-human.svg"),
+      toolDir: join(dir, "bin"),
     });
-    expect(stdout).toContain("libredwg-web-renderer");
+    expect(stdout).toContain("Wrote");
   });
 
   test("view writes SVG to stdout in human mode", async () => {

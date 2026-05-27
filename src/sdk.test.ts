@@ -22,7 +22,7 @@ describe("SDK", () => {
         };
       },
     };
-    const dwg = Dwg.withLibreDwgParser(parser, file);
+    const dwg = Dwg.open(file, { parser });
     expect((await dwg.info()).format).toBe("DXF");
     expect(await dwg.layers()).toEqual([{ name: "0", entityCount: 1 }]);
     expect((await dwg.search({ query: "line" }))[0].type).toBe("LINE");

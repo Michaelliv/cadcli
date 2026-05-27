@@ -13,6 +13,7 @@ export interface SearchOptions extends OutputOptions {
   score?: boolean;
   snippets?: boolean;
   parser?: DwgParser;
+  toolDir?: string;
 }
 
 export async function search(
@@ -20,7 +21,10 @@ export async function search(
   options: SearchOptions,
 ): Promise<void> {
   try {
-    const results = await Dwg.open(file, { parser: options.parser }).search({
+    const results = await Dwg.open(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    }).search({
       query: options.query,
       type: options.type,
       layer: options.layer,

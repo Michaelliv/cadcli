@@ -6,10 +6,15 @@ import { handleCommandError } from "./shared.js";
 
 export async function blocks(
   file: string,
-  options: OutputOptions & { parser?: DwgParser } & { total?: boolean },
+  options: OutputOptions & { parser?: DwgParser; toolDir?: string } & {
+    total?: boolean;
+  },
 ): Promise<void> {
   try {
-    const items = await Dwg.open(file, { parser: options.parser }).blocks();
+    const items = await Dwg.open(file, {
+      parser: options.parser,
+      toolDir: options.toolDir,
+    }).blocks();
     output(options, {
       json: () =>
         options.total
