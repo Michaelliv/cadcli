@@ -1,16 +1,16 @@
 # cadcli
 
-Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files — powered by native LibreDWG.
+Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.
 
 ```bash
 npm install -g cadcli
 ```
 
-`cadcli` expects LibreDWG tools on your `PATH`. At minimum, install `dwgread` for inspection/search/viewing and `dwgfilter` for editing.
+Requires native CAD tools on your `PATH`: `dwgread` for inspection/viewing and `dwgfilter` for editing.
 
 ## Why cadcli
 
-CAD files are hard to inspect from scripts. `cadcli` gives agents and developers a predictable interface over DWG/DXF drawings: structured JSON for automation, concise human output in the terminal, SVG previews for visual checks, and safe copy-first editing through LibreDWG.
+CAD files are hard to inspect from scripts. `cadcli` gives agents and developers a predictable interface over DWG/DXF drawings: structured JSON for automation, concise human output in the terminal, SVG previews for visual checks, and safe copy-first editing.
 
 ```bash
 cadcli info floorplan.dwg --json
@@ -39,7 +39,7 @@ cadcli entities <file>                   # entities, optionally filtered
 cadcli search <file> [query]             # search IDs, types, layers, text, raw fields
   --query "door" --type TEXT --layer A-TEXT --limit 10 --score --no-snippets
 
-cadcli view <file> [-o preview.svg]      # native LibreDWG SVG via dwgread
+cadcli view <file> [-o preview.svg]      # high-fidelity SVG preview
 cadcli edit <file> --jq <expr> -o out.dwg
 cadcli json <file> [-o drawing.json]     # normalized JSON
 cadcli svg <file> [-o sketch.svg]        # best-effort SVG from normalized JSON
@@ -50,9 +50,9 @@ All commands support `--json` for structured output and `-q, --quiet` where usef
 
 ## Viewing vs SVG export
 
-`cadcli view` is the high-fidelity path: it calls native LibreDWG `dwgread -O SVG`.
+`cadcli view` is the high-fidelity SVG path.
 
-`cadcli svg` renders a lightweight SVG from cadcli’s normalized JSON model. It is useful for quick agent previews and debugging, but it is not a replacement for LibreDWG’s native SVG renderer.
+`cadcli svg` renders a lightweight SVG from cadcli’s normalized JSON model. It is useful for quick agent previews and debugging, but it is not a replacement for `view`.
 
 ## Editing
 
@@ -83,7 +83,7 @@ const preview = drawing.view();
 console.log(preview.svg);
 ```
 
-The public SDK is intentionally small: `Dwg` plus stable CAD/result types. Native LibreDWG details stay behind the SDK methods.
+The public SDK is intentionally small: `Dwg` plus stable CAD/result types. Native tool details stay behind the SDK methods.
 
 ## Cache
 
@@ -97,17 +97,9 @@ Windows  %LOCALAPPDATA%\cadcli\Cache
 
 Set `CADCLI_CACHE_DIR` to override this location.
 
-## LibreDWG
+## Requirements
 
-`cadcli` uses native LibreDWG only:
-
-```txt
-dwgread    JSON for inspection/search/export, SVG for viewing
-dwgfilter  jq-style DWG/DXF editing
-dwgadd     future create/add workflow
-dwgwrite   future write workflow
-dwgrewrite future rewrite workflow
-```
+`cadcli` uses native LibreDWG tools under the hood. Install `dwgread` for read/view workflows and `dwgfilter` for edits.
 
 ## License
 
