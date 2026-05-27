@@ -1,6 +1,6 @@
 {
   "name": "@miclivs/cadcli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.",
   "type": "module",
   "main": "dist/index.js",
