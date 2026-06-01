@@ -1,7 +1,7 @@
 # cadcli
 
 <mental>
-acad-ts is the default parser for DWG/DXF inspection and search. Native LibreDWG tools are optional boundaries for high-fidelity viewing and jq-backed editing. Prefer SDK-first architecture: core domain logic returns typed data, commands only adapt CLI options and format output. Keep expected user errors friendly and machine output parseable.
+acad-ts is the parser/writer for DWG/DXF inspection, viewing, search, and editing. Prefer SDK-first architecture: core domain logic returns typed data, commands only adapt CLI options and format output. Keep expected user errors friendly and machine output parseable.
 </mental>
 
 ## Commands
@@ -18,7 +18,7 @@ bunx biome format --write src/
 
 ## Architecture
 
-`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, parser adapter boundaries, native LibreDWG tool wrappers, normalization, overview vocabulary extraction, filtering, disk-backed SQLite entity search with scan fallback, SVG rendering, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers.
+`cadcli` is both a CLI and SDK for CAD inspection, viewing, and editing. `src/core/*` owns file loading, parser adapter boundaries, normalization, overview vocabulary extraction, filtering, disk-backed SQLite entity search with scan fallback, SVG rendering, acad-ts view/edit helpers, and write helpers. `src/sdk.ts` exposes the ergonomic `Dwg` class. `src/index.ts` is the curated public package surface: export `Dwg` and stable result/domain types, not internal core helpers.
 
 ## Key patterns
 
@@ -26,9 +26,9 @@ All TypeScript imports use `.js` extensions. The npm CLI entry uses `#!/usr/bin/
 
 Search indexes are cached automatically in the platform-standard cache directory. Use `CADCLI_CACHE_DIR` to override it during tests or one-off runs.
 
-## Parser and native tools
+## Parser and writer
 
-Use `AcadTsReader` as the default reader for inspection/search/overview/JSON/SVG. Keep `NativeLibreDwgReader` available for explicit native parsing boundaries and tests. Native LibreDWG tools remain optional advanced paths: `dwgread` powers high-fidelity `view`, and `dwgfilter` handles jq-backed edits.
+Use acad-ts for inspection/search/overview/JSON/SVG/view/edit. Avoid adding native CAD tool dependencies unless there is a documented capability gap that acad-ts cannot cover.
 
 ## Adding a new command
 

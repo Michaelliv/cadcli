@@ -1,4 +1,13 @@
 import {
+  type AcadEditOperation,
+  type AcadEditResult,
+  editWithAcadTs,
+} from "./core/acad-edit.js";
+import {
+  type AcadSvgViewResult,
+  renderSvgWithAcadTs,
+} from "./core/acad-view.js";
+import {
   getBlocks,
   getEntities,
   getInfo,
@@ -9,12 +18,6 @@ import {
   toJson,
   toSvg,
 } from "./core/drawing.js";
-import {
-  editWithLibreDwgFilter,
-  type LibreDwgEditResult,
-  type LibreDwgViewResult,
-  renderSvgWithLibreDwg,
-} from "./core/libredwg.js";
 import {
   type DrawingOverview,
   type DrawingOverviewOptions,
@@ -78,22 +81,20 @@ export class Dwg {
     return toSvg(this.file, this.opts);
   }
 
-  view(opts: { toolDir?: string } = {}): LibreDwgViewResult {
-    return renderSvgWithLibreDwg(this.file, opts);
+  view(): AcadSvgViewResult {
+    return renderSvgWithAcadTs(this.file);
   }
 
   edit(opts: {
     output: string;
-    expression: string;
+    operations: AcadEditOperation[];
     overwrite?: boolean;
-    toolDir?: string;
-  }): LibreDwgEditResult {
-    return editWithLibreDwgFilter({
+  }): AcadEditResult {
+    return editWithAcadTs({
       input: this.file,
       output: opts.output,
-      expression: opts.expression,
+      operations: opts.operations,
       overwrite: opts.overwrite,
-      toolDir: opts.toolDir,
     });
   }
 

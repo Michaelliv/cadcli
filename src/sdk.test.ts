@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  ACadVersion,
+  CadDocument,
+  DxfReader,
+  DxfWriter,
+  TextEntity,
+  XYZ,
+} from "@node-projects/acad-ts";
 import { Dwg } from "./index.js";
 import type { DrawingReader } from "./types.js";
 
@@ -36,25 +44,43 @@ describe("SDK", () => {
     expect(Dwg.open(file, { reader: parser })).toBeInstanceOf(Dwg);
   });
 
-  test("SDK exposes LibreDWG native view and edit methods", () => {
-    const dir = `/tmp/cadcli-sdk-native-${Date.now()}`;
-    const binDir = join(dir, "bin");
-    mkdirSync(binDir, { recursive: true });
-    for (const [name, body] of [
-      ["dwgread", "echo '<svg>sdk</svg>'"],
-      ["dwgfilter", "exit 0"],
-    ] as const) {
-      const tool = join(binDir, name);
-      writeFileSync(tool, `#!/bin/sh\n${body}\n`);
-      chmodSync(tool, 0o755);
-    }
-    const file = join(dir, "x.dwg");
-    const out = join(dir, "out.dwg");
-    writeFileSync(file, "fake");
+  test("SDK exposes acad-ts view and edit methods", () => {
+    const dir = `/tmp/cadcli-sdk-acad-${Date.now()}`;
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, "x.dxf");
+    const out = join(dir, "out.dxf");
+    const doc = new CadDocument(ACadVersion.AC1032);
+    const text = new TextEntity();
+    text.value = "Old";
+    text.insertPoint = new XYZ(0, 0, 0);
+    doc.modelSpace?.entities.add(text);
+    let content = "";
+    DxfWriter.writeToStream(
+      {
+        write(value: string) {
+          content += value;
+        },
+        flush() {},
+        close() {},
+      },
+      doc,
+    );
+    writeFileSync(file, content);
+
     const dwg = Dwg.open(file);
-    expect(dwg.view({ toolDir: binDir }).svg).toContain("sdk");
+    expect(dwg.view().svg).toContain("<svg");
     expect(
-      dwg.edit({ output: out, expression: ".", toolDir: binDir }).output,
+      dwg.edit({
+        output: out,
+        operations: [
+          { kind: "setText", entityId: String(text.handle), text: "New" },
+        ],
+      }).output,
     ).toBe(out);
+
+    const edited = DxfReader.readFromStream(readFileSync(out));
+    expect(
+      ([...(edited.modelSpace?.entities ?? [])][0] as TextEntity).value,
+    ).toBe("New");
   });
 });

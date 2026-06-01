@@ -14,7 +14,6 @@ export async function json(
   try {
     const doc = await toJson(file, {
       reader: options.reader,
-      toolDir: options.toolDir,
     });
     const content = `${stringifyJson(doc)}\n`;
     if (options.output) {

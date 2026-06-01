@@ -8,7 +8,6 @@ import { error, output, success } from "../utils/output.js";
 
 export interface DrawingCommandOptions extends OutputOptions {
   reader?: DrawingReader;
-  toolDir?: string;
 }
 
 export interface OutputFileOptions extends OutputOptions {
@@ -18,7 +17,6 @@ export interface OutputFileOptions extends OutputOptions {
 export function drawingFor(file: string, options: DrawingCommandOptions): Dwg {
   return Dwg.open(file, {
     reader: options.reader,
-    toolDir: options.toolDir,
   });
 }
 

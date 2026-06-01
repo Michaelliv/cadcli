@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  ACadVersion,
+  CadDocument,
+  DxfReader,
+  DxfWriter,
+  TextEntity,
+  XYZ,
+} from "@node-projects/acad-ts";
 import type { DrawingReader } from "../types.js";
 import { blocks } from "./blocks.js";
 import { edit } from "./edit.js";
@@ -79,12 +87,35 @@ afterEach(() => {
   process.exit = oldExit;
 });
 
-function addTool(name: string, body: string): void {
-  const binDir = join(dir, "bin");
-  mkdirSync(binDir, { recursive: true });
-  const toolPath = join(binDir, name);
-  writeFileSync(toolPath, `#!/bin/sh\n${body}\n`);
-  chmodSync(toolPath, 0o755);
+function writeCadFixture(path: string): string {
+  const doc = new CadDocument(ACadVersion.AC1032);
+  const text = new TextEntity();
+  text.value = "Old label";
+  text.insertPoint = new XYZ(1, 2, 0);
+  doc.modelSpace?.entities.add(text);
+  let content = "";
+  DxfWriter.writeToStream(
+    {
+      write(value: string) {
+        content += value;
+      },
+      flush() {},
+      close() {},
+    },
+    doc,
+  );
+  writeFileSync(path, content);
+  return String(text.handle);
+}
+
+function readFirstText(path: string): TextEntity | undefined {
+  const bytes = readFileSync(path);
+  const doc = DxfReader.readFromStream(
+    new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+  );
+  return [...(doc.modelSpace?.entities ?? [])].find(
+    (entity) => entity instanceof TextEntity,
+  ) as TextEntity | undefined;
 }
 
 describe("commands", () => {
@@ -161,65 +192,75 @@ describe("commands", () => {
     expect(stdout).toContain("Conference room");
   });
 
-  test("view and edit use LibreDWG native tools", async () => {
-    addTool("dwgread", "echo '<svg>native</svg>'");
+  test("view and edit use acad-ts", async () => {
+    const cadFile = join(dir, "sample.dxf");
+    const id = writeCadFixture(cadFile);
     const viewOut = join(dir, "view.svg");
-    await view(file, {
-      output: viewOut,
-      json: true,
-      toolDir: join(dir, "bin"),
-    });
-    expect(JSON.parse(stdout).tool).toBe("dwgread");
-    expect(readFileSync(viewOut, "utf-8")).toContain("native");
+    await view(cadFile, { output: viewOut, json: true });
+    expect(JSON.parse(stdout).backend).toBe("acad-ts");
+    expect(readFileSync(viewOut, "utf-8")).toContain("<svg");
     resetOutput();
 
-    addTool("dwgfilter", "echo edited >&2");
-    const editOut = join(dir, "edited.dwg");
-    await edit(file, {
-      jq: ".",
+    const editOut = join(dir, "edited.dxf");
+    await edit(cadFile, {
+      setText: "New label",
+      textId: id,
       output: editOut,
       json: true,
-      toolDir: join(dir, "bin"),
     });
-    expect(JSON.parse(stdout).tool).toBe("dwgfilter");
+    expect(JSON.parse(stdout).backend).toBe("acad-ts");
+    expect(readFirstText(editOut).value).toBe("New label");
     resetOutput();
-    await edit(file, {
-      jq: ".",
-      output: editOut,
-      toolDir: join(dir, "bin"),
-    });
-    expect(stdout).toContain("Edited");
+
+    await view(cadFile, { json: true });
+    expect(JSON.parse(stdout).svg).toContain("<svg");
     resetOutput();
-    expect(readFileSync(editOut, "utf-8")).toBe("fake");
-    resetOutput();
-    await view(file, { json: true, toolDir: join(dir, "bin") });
-    expect(JSON.parse(stdout).svg).toContain("native");
-    resetOutput();
-    await view(file, {
-      output: join(dir, "view-human.svg"),
-      toolDir: join(dir, "bin"),
-    });
+    await view(cadFile, { output: join(dir, "view-human.svg") });
     expect(stdout).toContain("Wrote");
   });
 
   test("view writes SVG to stdout in human mode", async () => {
-    addTool("dwgread", "echo '<svg>stdout</svg>'");
-    await view(file, { toolDir: join(dir, "bin") });
-    expect(stdout).toContain("stdout");
+    const cadFile = join(dir, "sample.dxf");
+    writeCadFixture(cadFile);
+    await view(cadFile, {});
+    expect(stdout).toContain("<svg");
   });
 
-  test("edit validates jq input and native tool availability", async () => {
+  test("edit validates acad-ts input", async () => {
     await expect(edit(file, {})).rejects.toThrow("exit:2");
-    expect(stderr).toContain("No edit expression specified");
+    expect(stderr).toContain("No edit operation specified");
     resetOutput();
     await expect(
       edit(file, {
-        jq: ".",
-        output: join(dir, "x.dwg"),
-        toolDir: join(dir, "bin"),
+        setText: "New label",
+        output: join(dir, "x.dxf"),
       }),
-    ).rejects.toThrow("exit:4");
-    expect(stderr).toContain("LibreDWG tool not found");
+    ).rejects.toThrow("exit:2");
+    expect(stderr).toContain("--set-text requires --text-id");
+    resetOutput();
+    await expect(
+      edit(file, {
+        move: "1",
+        dx: "wat",
+        output: join(dir, "x.dxf"),
+      }),
+    ).rejects.toThrow("exit:2");
+    expect(stderr).toContain("Invalid --dx");
+    resetOutput();
+
+    const cadFile = join(dir, "sample.dxf");
+    const id = writeCadFixture(cadFile);
+    const editOut = join(dir, "layered.dxf");
+    await edit(cadFile, {
+      setLayer: "A-NEW",
+      layerId: id,
+      delete: id,
+      output: editOut,
+      json: true,
+    });
+    const parsed = JSON.parse(stdout);
+    expect(parsed.changed).toBe(2);
+    expect(readFirstText(editOut)).toBeUndefined();
   });
 
   test("json, svg, and thumbnail write output files", async () => {
@@ -304,11 +345,8 @@ describe("commands", () => {
     await expect(svg(file, { reader: badParser })).rejects.toThrow("exit:1");
     expect(stderr).toContain("bad cad");
     resetOutput();
-    addTool("dwgread", "echo nope >&2; exit 2");
-    await expect(view(file, { toolDir: join(dir, "bin") })).rejects.toThrow(
-      "exit:2",
-    );
-    expect(stderr).toContain("dwgread failed");
+    await expect(view(file, {})).rejects.toThrow("exit:2");
+    expect(stderr).toContain("Could not parse DWG");
     resetOutput();
     await expect(json(file, { reader: parser, output: dir })).rejects.toThrow(
       "exit:2",

@@ -1,8 +1,10 @@
 export type {
-  LibreDwgEditResult,
-  LibreDwgJsonResult,
-  LibreDwgViewResult,
-} from "./core/libredwg.js";
+  AcadColor,
+  AcadEditOperation,
+  AcadEditResult,
+  AcadPoint,
+} from "./core/acad-edit.js";
+export type { AcadSvgViewResult } from "./core/acad-view.js";
 export type {
   DrawingOverview,
   DrawingOverviewOptions,

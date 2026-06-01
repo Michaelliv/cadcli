@@ -6,7 +6,7 @@ Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.
 npm install -g @miclivs/cadcli
 ```
 
-Common inspection/search commands use a pure TypeScript parser by default. Native LibreDWG tools are only needed for high-fidelity `view` and jq-backed `edit`.
+Inspection, search, viewing, and editing use the pure TypeScript `acad-ts` backend. No native CAD tools are required.
 
 ## Why cadcli
 
@@ -17,7 +17,7 @@ cadcli info floorplan.dwg --json
 cadcli overview floorplan.dwg
 cadcli search floorplan.dwg "conference" --layer A-TEXT --json
 cadcli view floorplan.dwg -o preview.svg
-cadcli edit floorplan.dwg --jq '.OBJECTS[]' -o edited.dwg
+cadcli edit floorplan.dwg --set-text "Conference" --text-id 2A -o edited.dwg
 ```
 
 ## Workflow
@@ -42,8 +42,17 @@ cadcli entities <file>                   # entities, optionally filtered
 cadcli search <file> [query]             # search IDs, types, layers, text, raw fields
   --query "door" --type TEXT --layer A-TEXT --limit 10 --score --no-snippets
 
-cadcli view <file> [-o preview.svg]      # high-fidelity SVG preview
-cadcli edit <file> --jq <expr> -o out.dwg
+cadcli view <file> [-o preview.svg]      # SVG preview
+cadcli edit <file> --set-text <text> --text-id <id> -o out.dwg
+cadcli edit <file> --set-layer <layer> --layer-id <id> -o out.dwg
+cadcli edit <file> --set-color '#ff0000' --color-id <id> -o out.dwg
+cadcli edit <file> --move <id> --dx 10 --dy 0 -o out.dwg
+cadcli edit <file> --rotate <id> --angle 90 --origin 0,0 -o out.dwg
+cadcli edit <file> --scale <id> --factor 2 -o out.dwg
+cadcli edit <file> --copy <id> --dx 10 --dy 0 -o out.dwg
+cadcli edit <file> --delete <id> -o out.dwg
+cadcli edit <file> --add-line 0,0:10,0 --new-layer A-WALL -o out.dwg
+cadcli edit <file> --add-text "Label" --at 5,5 --height 2.5 -o out.dwg
 cadcli json <file> [-o drawing.json]     # normalized JSON
 cadcli svg <file> [-o sketch.svg]        # best-effort SVG from normalized JSON
 cadcli thumbnail <file> [-o thumb.png]   # embedded thumbnail when available
@@ -74,22 +83,24 @@ SEARCH HINTS
 
 ## Viewing vs SVG export
 
-`cadcli view` is the high-fidelity SVG path.
+`cadcli view` renders SVG through acad-ts directly from the CAD document.
 
-`cadcli svg` renders a lightweight SVG from cadcli’s normalized JSON model. It is useful for quick agent previews and debugging, but it is not a replacement for `view`.
+`cadcli svg` renders a lightweight SVG from cadcli’s normalized JSON model. It is useful for quick agent previews and debugging, while `view` preserves more of acad-ts’ CAD model semantics.
 
 ## Editing
 
-Editing is intentionally copy-first:
+Editing is intentionally copy-first and typed. You can update text, layers, color, linetype, lineweight, transparency, visibility, block attributes, transforms, copies, and deletion; you can also add point, line, circle, arc, text, mtext, and lightweight polyline entities.
 
 ```bash
-cadcli edit drawing.dwg --jq '.OBJECTS[]' -o edited.dwg
+cadcli edit drawing.dwg --set-text "New label" --text-id 2A -o edited.dwg
+cadcli edit drawing.dwg --set-attr ROOM=204 --insert-id 3F -o edited.dwg
+cadcli edit drawing.dwg --points '0,0;10,0;10,5' --closed --new-layer A-WALL -o edited.dwg
 ```
 
 In-place edits are refused unless you explicitly pass `--overwrite`:
 
 ```bash
-cadcli edit drawing.dwg --jq '.OBJECTS[]' --overwrite
+cadcli edit drawing.dwg --set-text "New label" --text-id 2A --overwrite
 ```
 
 ## SDK
@@ -107,7 +118,7 @@ const preview = drawing.view();
 console.log(preview.svg);
 ```
 
-The public SDK is intentionally small: `Dwg` plus stable CAD/result types. Native tool details stay behind the SDK methods.
+The public SDK is intentionally small: `Dwg` plus stable CAD/result types.
 
 ## Cache
 
@@ -123,9 +134,7 @@ Set `CADCLI_CACHE_DIR` to override this location.
 
 ## Requirements
 
-Inspection, overview, layers, blocks, entities, search, JSON, and lightweight SVG export work through the default pure TypeScript parser.
-
-Install native LibreDWG tools for advanced workflows: `dwgread` for high-fidelity `view`, and `dwgfilter` for edits.
+Inspection, overview, layers, blocks, entities, search, JSON, SVG export, viewing, and editing work through the default pure TypeScript acad-ts backend.
 
 ## License
 

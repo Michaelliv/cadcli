@@ -1,17 +1,15 @@
-import { renderSvgWithLibreDwg } from "../core/libredwg.js";
+import { renderSvgWithAcadTs } from "../core/acad-view.js";
 import type { OutputOptions } from "../utils/output.js";
 import { handleCommandError, writeCommandOutput } from "./shared.js";
 
 export interface ViewOptions extends OutputOptions {
   output?: string;
-  toolDir?: string;
 }
 
 export async function view(file: string, options: ViewOptions): Promise<void> {
   try {
-    const result = renderSvgWithLibreDwg(file, { toolDir: options.toolDir });
+    const result = renderSvgWithAcadTs(file);
     const svg = result.svg;
-    const tool = result.tool;
 
     if (options.output) {
       writeCommandOutput(
@@ -20,15 +18,14 @@ export async function view(file: string, options: ViewOptions): Promise<void> {
         () => ({
           success: true,
           file: options.output,
-          backend: "LibreDWG",
-          tool,
+          backend: "acad-ts",
         }),
-        `Wrote ${options.output} with ${tool}`,
+        `Wrote ${options.output} with acad-ts`,
       );
       return;
     }
     if (options.json) {
-      console.log(JSON.stringify({ backend: "LibreDWG", tool, svg }, null, 2));
+      console.log(JSON.stringify({ backend: "acad-ts", svg }, null, 2));
     } else {
       console.log(svg.trimEnd());
     }

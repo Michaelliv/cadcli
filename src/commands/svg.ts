@@ -13,7 +13,6 @@ export async function svg(
   try {
     const result = await toSvg(file, {
       reader: options.reader,
-      toolDir: options.toolDir,
     });
     if (options.output) {
       writeCommandOutput(

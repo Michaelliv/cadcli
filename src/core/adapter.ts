@@ -3,7 +3,6 @@ import { DwgReader, DxfReader } from "@node-projects/acad-ts";
 import type { DrawingReader, DwgFormat, ThumbnailResult } from "../types.js";
 import { EXIT_UNAVAILABLE, EXIT_USER_ERROR } from "../utils/exit-codes.js";
 import { DwgCliError } from "./errors.js";
-import { readJsonWithLibreDwg } from "./libredwg.js";
 
 interface NormalizedAcadEntity {
   handle?: unknown;
@@ -179,26 +178,6 @@ export class AcadTsReader implements DrawingReader {
   async thumbnail(): Promise<ThumbnailResult | null> {
     throw new DwgCliError(
       "Thumbnail extraction is not available through acad-ts.",
-      "THUMBNAIL_UNAVAILABLE",
-      EXIT_UNAVAILABLE,
-    );
-  }
-}
-
-export class NativeLibreDwgReader implements DrawingReader {
-  constructor(private readonly toolDir?: string) {}
-
-  async parse(
-    file: string,
-    _bytes: Uint8Array,
-    _format: DwgFormat,
-  ): Promise<unknown> {
-    return readJsonWithLibreDwg(file, { toolDir: this.toolDir }).json;
-  }
-
-  async thumbnail(): Promise<ThumbnailResult | null> {
-    throw new DwgCliError(
-      "Thumbnail extraction is not available through native LibreDWG.",
       "THUMBNAIL_UNAVAILABLE",
       EXIT_UNAVAILABLE,
     );

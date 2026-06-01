@@ -17,7 +17,6 @@ import { renderSvg } from "./svg.js";
 
 export interface LoadOptions {
   reader?: DrawingReader;
-  toolDir?: string;
 }
 
 function readerFor(opts: LoadOptions): DrawingReader {

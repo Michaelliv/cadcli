@@ -14,7 +14,6 @@ export async function thumbnail(
   try {
     const result = await getThumbnail(file, {
       reader: options.reader,
-      toolDir: options.toolDir,
     });
     if (!options.output) {
       output(options, {
