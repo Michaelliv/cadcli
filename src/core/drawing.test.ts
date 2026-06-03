@@ -25,6 +25,7 @@ let file = "";
 
 const raw = {
   version: "AC1032",
+  codePage: "ansi_1255",
   layers: [{ name: "0" }, { name: "A-WALL" }],
   blocks: [{ name: "Door", entities: [{ type: "LINE" }] }],
   entities: [
@@ -42,7 +43,14 @@ const raw = {
       center: { x: 5, y: 5 },
       radius: 2,
     },
-    { handle: "12", type: "SPLINE", layer: "A-WALL", custom: () => "ignored" },
+    {
+      handle: "12",
+      type: "MTEXT",
+      layer: "A-TEXT",
+      text: "jsr muu, 8",
+      textStyleFile: "gil.shx",
+    },
+    { handle: "13", type: "SPLINE", layer: "A-WALL", custom: () => "ignored" },
   ],
 };
 
@@ -66,11 +74,17 @@ describe("drawing core", () => {
     const doc = await loadDrawing(file, { reader: parser });
     expect(doc.summary.format).toBe("DWG");
     expect(doc.summary.version).toBe("AC1032");
-    expect(doc.layers.map((l) => l.name)).toEqual(["0", "A-WALL"]);
+    expect(doc.metadata.codePage).toBe("ansi_1255");
+    expect(doc.metadata.textNormalization).toEqual({
+      applied: ["hebrew-keyboard"],
+      entitiesChanged: 1,
+    });
+    expect(doc.entities[2].data.text).toBe("חדר צוות 8");
+    expect(doc.layers.map((l) => l.name)).toEqual(["0", "A-TEXT", "A-WALL"]);
     expect(doc.blocks[0].name).toBe("Door");
     expect(doc.summary.counts).toEqual({
-      entities: 3,
-      layers: 2,
+      entities: 4,
+      layers: 3,
       blocks: 1,
       unsupported: 1,
     });
@@ -80,6 +94,7 @@ describe("drawing core", () => {
   test("normalizes alternate raw database shapes", () => {
     const doc = normalizeDocument("alt.dxf", "DXF", {
       headerVersion: "AC1018",
+      encoding: "utf-8",
       Layers: [{ Name: "Layer A" }],
       blockHeaders: [{ Name: "Block A", Entities: [{ type: "LINE" }] }],
       Objects: [
@@ -95,6 +110,7 @@ describe("drawing core", () => {
       ],
     });
     expect(doc.summary.version).toBe("AC1018");
+    expect(doc.metadata.codePage).toBe("utf-8");
     expect(doc.summary.format).toBe("DXF");
     expect(doc.layers.map((layer) => layer.name)).toEqual([
       "Layer A",
@@ -217,7 +233,7 @@ describe("drawing core", () => {
     const result = await toSvg(file, { reader: parser });
     expect(result.svg).toContain("<line");
     expect(result.svg).toContain("<circle");
-    expect(result.unsupported).toBe(1);
+    expect(result.unsupported).toBe(2);
   });
 
   test("renders SVG edge cases", () => {
@@ -230,6 +246,7 @@ describe("drawing core", () => {
       layers: [],
       blocks: [],
       unsupported: [],
+      metadata: {},
       raw: {},
       entities: [
         { id: "1", type: "LINE", data: {} },

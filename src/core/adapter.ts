@@ -88,6 +88,15 @@ function blockName(entity: unknown): string | undefined {
   return valueString(asRecord(block).name);
 }
 
+function textStyle(entity: unknown): { name?: string; file?: string } {
+  const style = asRecord(entity)._style ?? asRecord(entity).style;
+  const rec = asRecord(style);
+  return {
+    name: valueString(rec.name ?? rec._name),
+    file: valueString(rec.filename),
+  };
+}
+
 function vertices(
   entity: unknown,
 ): { x: number; y: number; z?: number }[] | undefined {
@@ -130,7 +139,12 @@ function normalizeAcadEntity(entity: unknown): NormalizedAcadEntity {
   if (typeof rec.radius === "number") data.radius = rec.radius;
   if (typeof rec.startAngle === "number") data.startAngle = rec.startAngle;
   if (typeof rec.endAngle === "number") data.endAngle = rec.endAngle;
-  if (text) data.text = text;
+  if (text) {
+    const style = textStyle(entity);
+    data.text = text;
+    if (style.name) data.textStyle = style.name;
+    if (style.file) data.textStyleFile = style.file;
+  }
   if (name) data.blockName = name;
 
   return data;
@@ -148,6 +162,7 @@ export function normalizeAcadDocument(doc: CadDocument): unknown {
 
   return {
     version: doc.header?.versionString ?? String(doc.header?.version ?? ""),
+    codePage: doc.header?.codePage,
     layers,
     blocks,
     entities,

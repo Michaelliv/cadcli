@@ -41,6 +41,8 @@ cadcli entities <file>                   # entities, optionally filtered
 
 cadcli search <file> [query]             # search IDs, types, layers, text, raw fields
   --query "door" --type TEXT --layer A-TEXT --limit 10 --score --no-snippets
+cadcli query <file> --schema             # show SQL query tables
+cadcli query <file> --sql "select text from texts"
 
 cadcli view <file> [-o preview.svg]      # SVG preview
 cadcli edit <file> --set-text <text> --text-id <id> -o out.dwg
@@ -80,6 +82,51 @@ SEARCH HINTS
   conference room, office, A-TEXT, DOOR_SINGLE, TEXT
 ```
 
+
+## Text normalization
+
+Some CAD files store visible text through legacy code pages and SHX fonts. For example, a Hebrew DWG may store `jsr muu, 8` while AutoCAD displays it as `חדר צוות 8`. `cadcli` automatically normalizes these cases while loading the drawing, before `overview`, `search`, `entities`, `json`, and future query features consume the document.
+
+The normalizer is route-based: document metadata such as `codePage` is combined with per-entity text style/font metadata such as `gil.shx`, `narkism$.shx`, or `heb.shx`. When the route is confident, `cadcli` rewrites the in-memory `text` field to the intended text. It does not store both raw and normalized copies in caches or output.
+
+```txt
+raw DWG text:  jsr muu, 8
+cadcli text:   חדר צוות 8
+```
+
+The normalized document metadata records what happened:
+
+```json
+{
+  "metadata": {
+    "codePage": "ansi_1255",
+    "textNormalization": {
+      "applied": ["hebrew-keyboard"],
+      "entitiesChanged": 58
+    }
+  }
+}
+```
+
+This makes discovery work naturally:
+
+```bash
+cadcli overview office.dwg
+cadcli search office.dwg "חדר" --json
+```
+
+## Query
+
+`cadcli query` runs read-only SQL over a narrow in-memory projection of the normalized drawing. It does not create a user-visible database file.
+
+```bash
+cadcli query office.dwg --schema
+cadcli query office.dwg --schema --json
+cadcli query office.dwg --sql "select id, text, layer, x, y from texts where text like 'חדר%'" --json
+cadcli query office.dwg --file rooms.sql --json
+```
+
+The base tables are `summary`, `metadata`, `layers`, `blocks`, and `entities`. Convenience tables expose common drawing concepts such as `texts` and `inserts`.
 
 ## Viewing vs SVG export
 

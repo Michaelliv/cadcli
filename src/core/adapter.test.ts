@@ -51,12 +51,14 @@ class TextEntity {
   layer = { name: "A-TEXT" };
   value = "Conference";
   insertPoint = { x: 7, y: 8 };
+  _style = { name: "Standard", filename: "arial.ttf" };
 }
 
 class MText {
   handle = 15;
   plainText = "Room 20";
   insertPoint = { x: 9, y: 10 };
+  _style = { _name: "gil", filename: "gil.shx" };
 }
 
 class Insert {
@@ -81,7 +83,7 @@ function fakeAcadDocument() {
     new ProxyEntity(),
   ];
   return {
-    header: { versionString: "AC1032" },
+    header: { versionString: "AC1032", codePage: "ansi_1255" },
     layers: [{ name: "A-WALL" }, { name: "A-TEXT" }],
     blockRecords: [
       { name: "*Model_Space", entities: modelEntities },
@@ -97,12 +99,14 @@ describe("AcadTsReader", () => {
       fakeAcadDocument() as Parameters<typeof normalizeAcadDocument>[0],
     ) as {
       version: string;
+      codePage?: string;
       layers: unknown[];
       blocks: unknown[];
       entities: Array<Record<string, unknown>>;
     };
 
     expect(raw.version).toBe("AC1032");
+    expect(raw.codePage).toBe("ansi_1255");
     expect(raw.layers).toHaveLength(2);
     expect(raw.blocks).toHaveLength(2);
     expect(raw.entities.map((entity) => entity.type)).toEqual([
@@ -125,7 +129,11 @@ describe("AcadTsReader", () => {
       { x: 3, y: 4 },
     ]);
     expect(raw.entities[4].text).toBe("Conference");
+    expect(raw.entities[4].textStyle).toBe("Standard");
+    expect(raw.entities[4].textStyleFile).toBe("arial.ttf");
     expect(raw.entities[5].text).toBe("Room 20");
+    expect(raw.entities[5].textStyle).toBe("gil");
+    expect(raw.entities[5].textStyleFile).toBe("gil.shx");
     expect(raw.entities[6].blockName).toBe("DOOR_SINGLE");
 
     const sparse = normalizeAcadDocument({
@@ -135,12 +143,14 @@ describe("AcadTsReader", () => {
       modelSpace: null,
     } as Parameters<typeof normalizeAcadDocument>[0]) as {
       version: string;
+      codePage?: string;
       layers: unknown[];
       blocks: unknown[];
       entities: unknown[];
     };
     expect(sparse).toEqual({
       version: "0",
+      codePage: undefined,
       layers: [],
       blocks: [],
       entities: [],

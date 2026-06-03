@@ -41,8 +41,19 @@ export interface DwgSummary {
   bounds?: DwgBounds;
 }
 
+export interface DwgTextNormalizationMetadata {
+  applied: string[];
+  entitiesChanged: number;
+}
+
+export interface DwgMetadata {
+  codePage?: string;
+  textNormalization?: DwgTextNormalizationMetadata;
+}
+
 export interface DwgDocument {
   summary: DwgSummary;
+  metadata: DwgMetadata;
   layers: DwgLayer[];
   blocks: DwgBlock[];
   entities: DwgEntity[];

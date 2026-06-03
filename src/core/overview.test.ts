@@ -57,6 +57,7 @@ const doc: DwgDocument = {
     },
   ],
   unsupported: [],
+  metadata: {},
   raw: {},
 };
 
@@ -95,6 +96,7 @@ describe("drawing overview", () => {
       blocks: [],
       entities: [],
       unsupported: [],
+      metadata: {},
       raw: {},
     });
 

@@ -1,6 +1,6 @@
 {
   "name": "@miclivs/cadcli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent-friendly CAD inspection, search, viewing, and editing for DWG/DXF files.",
   "type": "module",
   "main": "dist/index.js",
@@ -68,6 +68,7 @@
     "@node-projects/acad-ts": "2.3.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
+    "convert-layout": "^0.11.1",
     "nanoid": "^5.1.6"
   },
   "optionalDependencies": {

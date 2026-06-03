@@ -10,6 +10,7 @@ import { info } from "./commands/info.js";
 import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
 import { overview } from "./commands/overview.js";
+import { query } from "./commands/query.js";
 import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
@@ -31,6 +32,7 @@ Examples:
   $ cadcli layers drawing.dwg --json     List layers for scripts/agents
   $ cadcli entities drawing.dwg --type LINE --limit 20
   $ cadcli search drawing.dwg "conference" --layer A-TEXT
+  $ cadcli query drawing.dwg --sql "select text, x, y from texts"
   $ cadcli view drawing.dwg -o drawing.svg
   $ cadcli edit drawing.dwg --set-text "Office" --text-id 2A -o edited.dwg
   $ cadcli edit drawing.dwg --add-line 0,0:10,0 --new-layer A-WALL -o edited.dwg
@@ -44,6 +46,7 @@ Inspecting:
   blocks <file>        List blocks
   entities <file>      List/filter entities
   search <file>        Search entities by text, type, layer, and raw fields
+  query <file>         Query normalized CAD tables with SQL
 
 Viewing and editing:
   view <file>          Render an SVG preview
@@ -53,6 +56,12 @@ Conversion:
   json <file>          Export normalized JSON
   svg <file>           Render best-effort SVG from normalized JSON
   thumbnail <file>     Extract embedded thumbnail when available
+
+Querying:
+  query <file>         Query normalized CAD tables with SQL
+    --schema           Show available query tables
+    --sql <query>      Run an inline SELECT query
+    --file <path>      Read a SELECT query from a file
 
 Options:
   --json               Output as JSON
@@ -133,6 +142,16 @@ program
     root.query = root.query || queryWords.join(" ");
     await search(file, root);
   });
+
+program
+  .command("query <file>")
+  .description("Query normalized CAD tables with SQL")
+  .option("--sql <query>", "SQL SELECT query to run")
+  .option("--file <path>", "Read SQL query from a file")
+  .option("--schema", "Show available query tables")
+  .action(async (file, opts, cmd) =>
+    query(file, { ...cmd.optsWithGlobals(), ...opts }),
+  );
 
 program
   .command("view <file>")

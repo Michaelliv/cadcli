@@ -178,6 +178,9 @@ export function normalizeDocument(
   );
   const blocks = normalizeBlocks(firstArray(root, BLOCK_ARRAY_FIELDS));
   const version = stringField(root, ["version", "headerVersion", "dwgVersion"]);
+  const metadata = {
+    codePage: stringField(root, ["codePage", "encoding"]),
+  };
 
   const summary: DwgSummary = {
     file: basename(file),
@@ -192,5 +195,5 @@ export function normalizeDocument(
     bounds: computeBounds(entities),
   };
 
-  return { summary, layers, blocks, entities, unsupported, raw };
+  return { summary, metadata, layers, blocks, entities, unsupported, raw };
 }

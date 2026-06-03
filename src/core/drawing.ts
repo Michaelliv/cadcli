@@ -14,6 +14,7 @@ import { DwgCliError } from "./errors.js";
 import { readCadFile } from "./files.js";
 import { normalizeDocument } from "./normalize.js";
 import { renderSvg } from "./svg.js";
+import { normalizeTextAuto } from "./text-normalize.js";
 
 export interface LoadOptions {
   reader?: DrawingReader;
@@ -29,7 +30,7 @@ export async function loadDrawing(
 ): Promise<DwgDocument> {
   const { bytes, format } = readCadFile(file);
   const raw = await readerFor(opts).parse(file, bytes, format);
-  return normalizeDocument(file, format, raw);
+  return normalizeTextAuto(normalizeDocument(file, format, raw));
 }
 
 export async function getInfo(file: string, opts?: LoadOptions) {

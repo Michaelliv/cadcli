@@ -8,6 +8,7 @@
         "@node-projects/acad-ts": "2.3.0",
         "chalk": "^5.6.2",
         "commander": "^14.0.3",
+        "convert-layout": "^0.11.1",
         "nanoid": "^5.1.6",
       },
       "devDependencies": {
@@ -65,6 +66,8 @@
     "chownr": ["chownr@1.1.4", "", {}, "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg=="],
 
     "commander": ["commander@14.0.3", "", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
+
+    "convert-layout": ["convert-layout@0.11.1", "", {}, "sha512-Zy+yE2AqFZUYZxvwS/He7DmnwEahGdy/GyiM33YdxoixyI1YZCYYup2OEYnrhn5r34L9YRa+PZC2ooVmQHY9oQ=="],
 
     "decompress-response": ["decompress-response@6.0.0", "", { "dependencies": { "mimic-response": "^3.1.0" } }, "sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ=="],
 
