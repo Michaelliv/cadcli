@@ -116,7 +116,8 @@ describe("drawing core", () => {
       "Layer A",
       "Layer B",
     ]);
-    expect(doc.blocks[0]).toEqual({ name: "Block A", entityCount: 1 });
+    expect(doc.blocks[0]).toMatchObject({ name: "Block A", entityCount: 1 });
+    expect(doc.blocks[0].entities?.[0]).toMatchObject({ type: "LINE" });
     expect(doc.entities[0].id).toBe("H1");
     expect(doc.entities[2].type).toBe("UNKNOWN");
   });
@@ -281,6 +282,84 @@ describe("drawing core", () => {
     expect(result.svg).toContain("<polyline");
     expect(result.svg).toContain("A&amp;B&lt;&quot;");
     expect(result.unsupported).toBe(5);
+  });
+
+  test("renders simple block insert geometry when requested", () => {
+    const result = renderSvg(
+      {
+        summary: {
+          file: "blocks.dwg",
+          format: "DWG",
+          counts: { entities: 1, layers: 0, blocks: 1, unsupported: 0 },
+        },
+        layers: [],
+        blocks: [
+          {
+            name: "Door",
+            entityCount: 1,
+            entities: [
+              {
+                id: "b1",
+                type: "LINE",
+                data: { start: { x: 0, y: 0 }, end: { x: 2, y: 0 } },
+              },
+            ],
+          },
+        ],
+        unsupported: [],
+        metadata: {},
+        raw: {},
+        entities: [
+          {
+            id: "1",
+            type: "INSERT",
+            data: { blockName: "Door", insertionPoint: { x: 10, y: 20 } },
+          },
+        ],
+      },
+      { expandInserts: true },
+    );
+
+    expect(result.svg).toContain('x1="10"');
+    expect(result.svg).toContain('x2="12"');
+    expect(result.unsupported).toBe(0);
+  });
+
+  test("renders SVG with layer filters", () => {
+    const result = renderSvg(
+      {
+        summary: {
+          file: "layers.dwg",
+          format: "DWG",
+          counts: { entities: 3, layers: 0, blocks: 0, unsupported: 0 },
+        },
+        layers: [],
+        blocks: [],
+        unsupported: [],
+        metadata: {},
+        raw: {},
+        entities: [
+          {
+            id: "1",
+            type: "LINE",
+            layer: "wall",
+            data: { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } },
+          },
+          {
+            id: "2",
+            type: "LINE",
+            layer: "furniture",
+            data: { start: { x: 2, y: 2 }, end: { x: 3, y: 3 } },
+          },
+          { id: "3", type: "INSERT", layer: "wall", data: {} },
+        ],
+      },
+      { layers: ["wall"] },
+    );
+
+    expect(result.svg).toContain('x1="0"');
+    expect(result.svg).not.toContain('x1="2"');
+    expect(result.unsupported).toBe(1);
   });
 
   test("reports unavailable and missing thumbnails", async () => {

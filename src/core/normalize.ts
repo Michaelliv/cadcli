@@ -144,9 +144,11 @@ function normalizeLayers(
 function normalizeBlocks(rawBlocks: unknown[]): DwgBlock[] {
   return rawBlocks.map((block, index) => {
     const rec = asRecord(block);
+    const entities = asArray(rec.entities ?? rec.Entities).map(normalizeEntity);
     return {
       name: getName(block, `Block ${index + 1}`),
-      entityCount: asArray(rec.entities ?? rec.Entities).length,
+      entityCount: entities.length,
+      entities,
     };
   });
 }

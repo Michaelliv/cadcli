@@ -11,6 +11,7 @@ import { json } from "./commands/json.js";
 import { layers } from "./commands/layers.js";
 import { overview } from "./commands/overview.js";
 import { query } from "./commands/query.js";
+import { render } from "./commands/render.js";
 import { search } from "./commands/search.js";
 import { svg } from "./commands/svg.js";
 import { thumbnail } from "./commands/thumbnail.js";
@@ -24,20 +25,33 @@ const program = new Command();
 function showHelp() {
   console.log(`Usage: cadcli [options] [command]
 
-Agent-friendly CAD inspection, search, viewing, and editing.
+Agent-friendly CAD understanding through progressive disclosure.
+
+CAD files are too large and visually dense for one-shot inspection. cadcli helps
+agents build understanding in small steps: summarize the drawing, discover its
+vocabulary, query/search concrete evidence, render focused visual state, then
+persist observations in a sidecar Markdown file next to the drawing.
+
+Recommended agent loop:
+  1. cadcli overview <file> --json
+  2. cadcli info <file> --json
+  3. cadcli query <file> --schema --json
+  4. cadcli search/query/entities <file> ... --json
+  5. cadcli render <file> -o <name>-renders --diagnose
+  6. write/update <file-with-.md> with evidence and open questions
+  7. repeat with targeted searches and renders
 
 Examples:
-  $ cadcli info drawing.dwg              Summarize a drawing
-  $ cadcli overview drawing.dwg          Show search vocabulary
-  $ cadcli layers drawing.dwg --json     List layers for scripts/agents
-  $ cadcli entities drawing.dwg --type LINE --limit 20
+  $ cadcli overview drawing.dwg --json   Show vocabulary and clues
+  $ cadcli info drawing.dwg              Summarize counts and bounds
+  $ cadcli query drawing.dwg --schema    Show queryable evidence tables
   $ cadcli search drawing.dwg "conference" --layer A-TEXT
   $ cadcli query drawing.dwg --sql "select text, x, y from texts"
-  $ cadcli view drawing.dwg -o drawing.svg
+  $ cadcli render drawing.dwg -o renders/ --diagnose
+  $ cadcli render drawing.dwg -o core.png --around-label "Server Room" --radius 3000
   $ cadcli edit drawing.dwg --set-text "Office" --text-id 2A -o edited.dwg
-  $ cadcli edit drawing.dwg --add-line 0,0:10,0 --new-layer A-WALL -o edited.dwg
 
-Workflow: info → overview → search/entities → view/edit
+Workflow: overview → info → query/search → render diagnose → targeted render → sidecar notes
 
 Inspecting:
   info <file>          Drawing metadata and counts
@@ -49,7 +63,8 @@ Inspecting:
   query <file>         Query normalized CAD tables with SQL
 
 Viewing and editing:
-  view <file>          Render an SVG preview
+  render <file>        Render useful PNG/SVG crops plus evidence state
+  view <file>          Low-level SVG preview
   edit <file>          Edit DWG/DXF with acad-ts operations
 
 Conversion:
@@ -159,6 +174,48 @@ program
   .option("-o, --output <path>", "Output SVG file")
   .action(async (file, opts, cmd) =>
     view(file, { ...cmd.optsWithGlobals(), ...opts }),
+  );
+program
+  .command("render <file>")
+  .description("Render useful PNG/SVG crops plus evidence state")
+  .option("-o, --output <path>", "Output PNG/SVG file")
+  .option("--around <x,y>", "Crop around CAD coordinates")
+  .option("--around-label <text>", "Crop around a matching text label")
+  .option("--around-block <name>", "Crop around a matching block insert")
+  .option("--radius <n>", "Crop radius in CAD units")
+  .option("--width <px>", "PNG output width in pixels")
+  .option("--background <color>", "PNG background color")
+  .option("--no-ink", "Disable high-contrast PNG styling")
+  .option("--stroke <color>", "Override stroke/text color")
+  .option("--stroke-width <n>", "Override stroke width")
+  .option("--fit <mode>", "Overview fit mode: content or bounds", "content")
+  .option("--layers <names>", "Only render comma-separated layers")
+  .option("--hide-layers <names>", "Hide comma-separated layers")
+  .option("--mark-label <texts>", "Mark comma-separated matching text labels")
+  .option("--mark-block <names>", "Mark comma-separated matching block inserts")
+  .option("--no-expand-inserts", "Disable block insert expansion")
+  .option(
+    "--diagnose",
+    "Write an agent-friendly render bundle to output directory",
+  )
+  .addHelpText(
+    "after",
+    `
+Agent workflow:
+  Start broad, then narrow. Use --diagnose for a visual/state bundle when the
+  question depends on layout, entrances, adjacency, rooms, furniture, or core
+  areas. Then use --around-label, --around-block, --layers, --hide-layers, and
+  markers for focused follow-up renders.
+
+Examples:
+  $ cadcli render office.dwg -o office-renders --diagnose
+  $ cadcli render office.dwg -o core.png --around-label "Server Room" --radius 3000
+  $ cadcli render office.dwg -o architecture.png --layers "wall,core,A-WALL"
+  $ cadcli render office.dwg -o marked.png --mark-label "Server Room,Electrical" --mark-block "desk,door"
+`,
+  )
+  .action(async (file, opts, cmd) =>
+    render(file, { ...cmd.optsWithGlobals(), ...opts }),
   );
 program
   .command("edit <file>")

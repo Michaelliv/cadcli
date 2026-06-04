@@ -3,6 +3,12 @@ import type { DwgBounds, DwgDocument, DwgEntity, SvgResult } from "../types.js";
 type Point = { x: number; y: number };
 type Renderer = (entity: DwgEntity) => string | null;
 
+export interface RenderSvgOptions {
+  layers?: string[];
+  hideLayers?: string[];
+  expandInserts?: boolean;
+}
+
 const DEFAULT_BOUNDS: DwgBounds = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
 
 function data(entity: DwgEntity): Record<string, unknown> {
@@ -84,6 +90,66 @@ function rendererFor(entity: DwgEntity): Renderer | undefined {
   return RENDERERS[entity.type];
 }
 
+function transformedEntity(entity: DwgEntity, offset: Point): DwgEntity {
+  return {
+    ...entity,
+    data: transformData(entity.data, offset),
+  };
+}
+
+function transformData(
+  data: Record<string, unknown>,
+  offset: Point,
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...data };
+  for (const key of [
+    "start",
+    "end",
+    "center",
+    "insertionPoint",
+    "position",
+    "point",
+  ]) {
+    const transformed = transformPoint(next[key], offset);
+    if (transformed) next[key] = transformed;
+  }
+  if (Array.isArray(next.vertices)) {
+    next.vertices = next.vertices.map(
+      (vertex) => transformPoint(vertex, offset) ?? vertex,
+    );
+  }
+  return next;
+}
+
+function transformPoint(value: unknown, offset: Point): Point | null {
+  const p = point(value);
+  return p ? { x: p.x + offset.x, y: p.y + offset.y } : null;
+}
+
+function blockName(entity: DwgEntity): string | undefined {
+  const value = entity.data.blockName ?? entity.data.name;
+  return typeof value === "string" ? value : undefined;
+}
+
+function expandedInsertElements(doc: DwgDocument, entity: DwgEntity): string[] {
+  if (entity.type !== "INSERT") return [];
+  const insertionPoint = point(
+    entity.data.insertionPoint ?? entity.data.position,
+  );
+  const name = blockName(entity);
+  if (!insertionPoint || !name) return [];
+  const block = doc.blocks.find((item) => item.name === name);
+  if (!block?.entities) return [];
+  const elements: string[] = [];
+  for (const child of block.entities) {
+    const renderer = rendererFor(child);
+    const element =
+      renderer?.(transformedEntity(child, insertionPoint)) ?? null;
+    if (element) elements.push(element);
+  }
+  return elements;
+}
+
 function boundsFor(doc: DwgDocument): DwgBounds {
   return doc.summary.bounds ?? DEFAULT_BOUNDS;
 }
@@ -98,12 +164,23 @@ function metadata(unsupported: number, rendered: number): string {
   return escapeXml(JSON.stringify({ unsupported, rendered }));
 }
 
-export function renderSvg(doc: DwgDocument): SvgResult {
+export function renderSvg(
+  doc: DwgDocument,
+  options: RenderSvgOptions = {},
+): SvgResult {
   const bounds = boundsFor(doc);
   const elements: string[] = [];
   let unsupported = 0;
+  const entities = filterRenderableEntities(doc.entities, options);
 
-  for (const entity of doc.entities) {
+  for (const entity of entities) {
+    if (options.expandInserts && entity.type === "INSERT") {
+      const expanded = expandedInsertElements(doc, entity);
+      if (expanded.length > 0) {
+        elements.push(...expanded);
+        continue;
+      }
+    }
     const renderer = rendererFor(entity);
     const element = renderer?.(entity) ?? null;
     if (element) elements.push(element);
@@ -119,4 +196,26 @@ export function renderSvg(doc: DwgDocument): SvgResult {
 </svg>
 `;
   return { svg, unsupported, rendered, bounds };
+}
+
+function filterRenderableEntities(
+  entities: DwgEntity[],
+  options: RenderSvgOptions,
+): DwgEntity[] {
+  const layers = normalizeSet(options.layers);
+  const hideLayers = normalizeSet(options.hideLayers);
+  return entities.filter((entity) => {
+    const layer = entity.layer?.toLowerCase();
+    if (layers && (!layer || !layers.has(layer))) return false;
+    if (hideLayers && layer && hideLayers.has(layer)) return false;
+    return true;
+  });
+}
+
+function normalizeSet(values?: string[]): Set<string> | undefined {
+  const normalized = values
+    ?.flatMap((value) => value.split(","))
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return normalized && normalized.length > 0 ? new Set(normalized) : undefined;
 }

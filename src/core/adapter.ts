@@ -154,9 +154,7 @@ export function normalizeAcadDocument(doc: CadDocument): unknown {
   const layers = items(doc.layers).map((layer) => ({ name: layer.name }));
   const blocks = items(doc.blockRecords).map((block) => ({
     name: block.name,
-    entities: items(block.entities).map((entity) => ({
-      type: entityType(entity),
-    })),
+    entities: items(block.entities).map(normalizeAcadEntity),
   }));
   const entities = items(doc.modelSpace?.entities).map(normalizeAcadEntity);
 

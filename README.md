@@ -26,7 +26,7 @@ cadcli edit floorplan.dwg --set-text "Conference" --text-id 2A -o edited.dwg
 info → overview → layers/blocks/entities → search → view → edit
 ```
 
-Start with `info` to understand the drawing, use `overview` to see the searchable vocabulary, narrow down with `layers`, `blocks`, `entities`, and `search`, render an SVG with `view`, then write edits to a new file with `edit -o`.
+Start with `info` to understand the drawing, use `overview` to see the searchable vocabulary, narrow down with `layers`, `blocks`, `entities`, and `search`, render agent-friendly PNG/SVG evidence with `render`, then write edits to a new file with `edit -o`.
 
 ## Commands
 
@@ -45,6 +45,8 @@ cadcli query <file> --schema             # show SQL query tables
 cadcli query <file> --sql "select text from texts"
 
 cadcli view <file> [-o preview.svg]      # SVG preview
+cadcli render <file> -o overview.png     # agent-friendly PNG/SVG render
+cadcli render <file> -o renders/ --diagnose # overview, architecture, furniture slices
 cadcli edit <file> --set-text <text> --text-id <id> -o out.dwg
 cadcli edit <file> --set-layer <layer> --layer-id <id> -o out.dwg
 cadcli edit <file> --set-color '#ff0000' --color-id <id> -o out.dwg
@@ -127,6 +129,19 @@ cadcli query office.dwg --file rooms.sql --json
 ```
 
 The base tables are `summary`, `metadata`, `layers`, `blocks`, and `entities`. Convenience tables expose common drawing concepts such as `texts` and `inserts`.
+
+## Rendering for visual understanding
+
+`cadcli render` creates agent-friendly visual evidence from DWG/DXF files. PNG renders use content-fit bounds, high-contrast linework, and expanded block inserts by default so useful drawing geometry is not shrunk by far-out CAD extents.
+
+```bash
+cadcli render office.dwg -o overview.png
+cadcli render office.dwg -o core.png --around-label "Server Room" --radius 3000
+cadcli render office.dwg -o architecture.png --layers "wall,core,A-WALL"
+cadcli render office.dwg -o renders/ --diagnose
+```
+
+`--diagnose` writes a small bundle for agents: `overview.png`, `architecture.png`, `no-furniture.png`, `furniture.png`, `evidence-marked.png`, and `evidence.json` with render counts and viewports. Use it when a question depends on layout, entrances, adjacency, or separating architectural evidence from furniture noise.
 
 ## Viewing vs SVG export
 

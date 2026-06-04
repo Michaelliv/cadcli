@@ -17,6 +17,7 @@ import { info } from "./info.js";
 import { json } from "./json.js";
 import { layers } from "./layers.js";
 import { overview } from "./overview.js";
+import { render } from "./render.js";
 import { search } from "./search.js";
 import { svg } from "./svg.js";
 import { thumbnail } from "./thumbnail.js";
@@ -261,6 +262,89 @@ describe("commands", () => {
     const parsed = JSON.parse(stdout);
     expect(parsed.changed).toBe(2);
     expect(readFirstText(editOut)).toBeUndefined();
+  });
+
+  test("render writes diagnostic bundles for agent visual understanding", async () => {
+    const renderParser: DrawingReader = {
+      async parse() {
+        return {
+          layers: [{ name: "wall" }, { name: "ריהוט" }],
+          blocks: [
+            {
+              name: "DoorBlock",
+              entities: [
+                {
+                  type: "LINE",
+                  start: { x: 0, y: 0 },
+                  end: { x: 2, y: 0 },
+                },
+              ],
+            },
+          ],
+          entities: [
+            {
+              handle: "wall1",
+              type: "LINE",
+              layer: "wall",
+              start: { x: 0, y: 0 },
+              end: { x: 10, y: 0 },
+            },
+            {
+              handle: "label1",
+              type: "TEXT",
+              layer: "ריהוט",
+              text: "חדר תקשורת",
+              position: { x: 4, y: 2 },
+            },
+            {
+              handle: "insert1",
+              type: "INSERT",
+              layer: "wall",
+              blockName: "DoorBlock",
+              insertionPoint: { x: 5, y: 0 },
+            },
+          ],
+        };
+      },
+    };
+
+    const renderOut = join(dir, "render.png");
+    await render(file, {
+      output: renderOut,
+      json: true,
+      reader: renderParser,
+      markLabel: "חדר תקשורת",
+    });
+    expect(JSON.parse(stdout).rendered).toBeGreaterThan(1);
+    expect(readFileSync(renderOut).subarray(0, 8).toString("hex")).toBe(
+      "89504e470d0a1a0a",
+    );
+    resetOutput();
+
+    const bundleOut = join(dir, "renders");
+    await render(file, {
+      output: bundleOut,
+      json: true,
+      reader: renderParser,
+      diagnose: true,
+    });
+    const parsed = JSON.parse(stdout);
+    expect(parsed.success).toBe(true);
+    expect(parsed.renders.map((item: { name: string }) => item.name)).toEqual([
+      "overview",
+      "architecture",
+      "no-furniture",
+      "furniture",
+      "evidence-marked",
+    ]);
+    expect(readFileSync(join(bundleOut, "evidence.json"), "utf-8")).toContain(
+      "architecture",
+    );
+    expect(
+      readFileSync(join(bundleOut, "overview.png"))
+        .subarray(0, 8)
+        .toString("hex"),
+    ).toBe("89504e470d0a1a0a");
   });
 
   test("json, svg, and thumbnail write output files", async () => {

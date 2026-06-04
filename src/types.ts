@@ -26,6 +26,7 @@ export interface DwgLayer {
 export interface DwgBlock {
   name: string;
   entityCount: number;
+  entities?: DwgEntity[];
 }
 
 export interface DwgSummary {
